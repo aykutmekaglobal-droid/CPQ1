@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gate Model | MEKA</title>
+<style>
+:root{
+  --navy:#1e2555; --navy-2:#2b3370; --gold:#f5b400; --green:#7ac143;
+  --head-bg:#e9e9e9; --page:#ffffff; --ink:#1b1b1b; --muted:#6b7280;
+  --row-a:#dcdcdc; --row-b:#efefef; --card:#ffffff; --line:#d4d4d4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+.wrap{max-width:1400px;margin:0 auto;padding:18px}
+
+.topbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);
+  padding:7px 13px;border-radius:6px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--gold)}
+.btn.gold{background:var(--gold);color:#1b1b1b;border-color:var(--gold);font-weight:600}
+
+/* Başlık şeridi */
+.header{display:flex;align-items:stretch;margin-bottom:16px}
+.header .title{flex:1;background:var(--head-bg);display:flex;align-items:center;padding:14px 22px}
+.header .title h1{margin:0;font-size:30px;letter-spacing:.5px;color:var(--navy);font-weight:700;outline:none}
+.logo{background:var(--navy);color:#fff;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:10px 26px;min-width:190px}
+/* gerçek MEKA logosu (lacivert PNG) — koyu zeminde beyaza çevrilir */
+.mekamark{display:block;width:132px;height:auto;
+  filter:brightness(0) invert(1);image-rendering:auto}
+.logo span{font-size:10px;opacity:.85;margin-top:5px;letter-spacing:.3px}
+
+/* Proje ekibi — yandan kayan panel */
+.scrim{position:fixed;inset:0;background:rgba(20,25,55,.42);opacity:0;visibility:hidden;
+  transition:opacity .28s ease,visibility .28s;z-index:60}
+body.drawer-open .scrim{opacity:1;visibility:visible}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:88vw;background:var(--card);
+  box-shadow:-8px 0 32px rgba(20,25,55,.28);z-index:61;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+body.drawer-open .drawer{transform:translateX(0)}
+.drawer .dhead{background:var(--navy);color:#fff;padding:16px 18px;display:flex;
+  align-items:center;justify-content:space-between}
+.drawer .dhead h3{margin:0;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--gold)}
+.dclose{width:30px;height:30px;border:none;background:rgba(255,255,255,.12);color:#fff;
+  border-radius:50%;cursor:pointer;font-size:0;position:relative;transition:background .18s}
+.dclose:hover{background:#e03131}
+.dclose::before,.dclose::after{content:"";position:absolute;top:50%;left:50%;width:13px;height:2px;
+  background:#fff;border-radius:2px}
+.dclose::before{transform:translate(-50%,-50%) rotate(45deg)}
+.dclose::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.dbody{flex:1;overflow-y:auto;padding:16px 18px}
+.dfoot{border-top:1px solid var(--line);padding:14px 18px;background:#fafafa}
+.chips{display:flex;flex-direction:column;gap:7px}
+.chip{display:flex;align-items:center;gap:9px;background:#f3f4f9;color:var(--ink);
+  padding:8px 10px;border-radius:8px;font-size:13px;border:1px solid var(--line)}
+.chip b{background:var(--navy);color:var(--gold);font-weight:700;font-size:11.5px;
+  padding:3px 7px;border-radius:4px;min-width:34px;text-align:center}
+.chip .nm{flex:1}
+.chip .x{cursor:pointer;color:var(--muted);font-weight:700;padding:0 4px;font-size:15px}
+.chip .x:hover{color:#e03131}
+.teamadd{display:flex;flex-direction:column;gap:8px}
+.teamadd input{border:1px solid var(--line);padding:9px 11px;font-size:13px;border-radius:6px;
+  font-family:inherit;width:100%}
+.teamadd input:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:var(--gold)}
+.teamadd input.ini{text-transform:uppercase}
+.empty{color:var(--muted);font-size:12.5px;font-style:italic}
+.btn.team-btn{display:inline-flex;align-items:center;gap:7px;margin-right:8px}
+.btn.team-btn .cnt{background:var(--navy);color:var(--gold);border-radius:20px;
+  padding:1px 7px;font-size:11px;font-weight:700}
+
+/* Uyarı penceresi */
+.uyari{position:fixed;inset:0;background:rgba(20,25,55,.45);z-index:70;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.uyari.on{display:flex}
+.ubox{background:var(--card);width:430px;max-width:100%;
+  box-shadow:0 18px 50px rgba(20,25,55,.4);border-radius:10px;overflow:hidden}
+.ubox .uhead{background:var(--navy);color:var(--gold);padding:14px 18px;font-size:13.5px;
+  text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.ubox .ubody{padding:18px}
+.ubox p{margin:0 0 10px;font-size:13.5px;line-height:1.6}
+.ubox ul{margin:0;padding-left:20px;font-size:13px;line-height:1.7;color:var(--muted)}
+.ubox .ufoot{display:flex;gap:9px;justify-content:flex-end;padding:0 18px 18px}
+.btn.tehlike{background:#e03131;border-color:#e03131;color:#fff;font-weight:600}
+.btn.tehlike:hover{background:#c92a2a;border-color:#c92a2a}
+
+/* Gantt penceresi */
+.gbox{background:var(--card);width:1180px;max-width:96vw;max-height:88vh;display:flex;
+  flex-direction:column;border-radius:12px;overflow:hidden;
+  box-shadow:0 22px 60px rgba(20,25,55,.45)}
+.gwrap{flex:1;overflow:auto;padding:0;min-height:0}
+
+/* Gantt başlığı */
+.ghead{background:linear-gradient(135deg,var(--navy) 0%,#2b3370 62%,#39428a 100%);
+  color:#fff;padding:15px 18px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.ghead .gikon{width:38px;height:38px;border-radius:9px;background:rgba(245,180,0,.16);
+  border:1px solid rgba(245,180,0,.45);display:flex;align-items:center;justify-content:center;
+  flex-shrink:0}
+.ghead .gikon i{display:block;width:16px;height:2px;background:var(--gold);border-radius:2px;
+  box-shadow:0 -5px 0 rgba(245,180,0,.55),0 5px 0 rgba(245,180,0,.8);margin-left:-2px}
+.ghead .gyazi{flex:1;min-width:0}
+.ghead .gust{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--gold);font-weight:700}
+.ghead .galt{font-size:16px;font-weight:600;margin-top:2px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.glegend{display:flex;gap:14px;align-items:center;font-size:11px;color:rgba(255,255,255,.8);
+  flex-shrink:0}
+.glegend span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.glegend i{width:11px;height:11px;border-radius:3px;display:block}
+.ghead .dclose{background:rgba(255,255,255,.14);flex-shrink:0}
+.ghead .dclose:hover{background:#e03131}
+
+/* pencereyi taşıma ve yeniden boyutlandırma */
+.ghead{cursor:grab;user-select:none;touch-action:none}
+.ghead.tasiniyor{cursor:grabbing}
+.ghead .dclose,.ghead .glegend{cursor:default}
+.gbox.serbest{position:fixed;margin:0;max-height:none}
+.gtut{position:absolute;z-index:9;touch-action:none}
+.gtut-n{top:-3px;left:12px;right:12px;height:8px;cursor:ns-resize}
+.gtut-s{bottom:-3px;left:12px;right:12px;height:8px;cursor:ns-resize}
+.gtut-w{left:-3px;top:12px;bottom:12px;width:8px;cursor:ew-resize}
+.gtut-e{right:-3px;top:12px;bottom:12px;width:8px;cursor:ew-resize}
+.gtut-nw{top:-3px;left:-3px;width:16px;height:16px;cursor:nwse-resize}
+.gtut-ne{top:-3px;right:-3px;width:16px;height:16px;cursor:nesw-resize}
+.gtut-sw{bottom:-3px;left:-3px;width:16px;height:16px;cursor:nesw-resize}
+.gtut-se{bottom:-3px;right:-3px;width:16px;height:16px;cursor:nwse-resize}
+.gtut-se::after{content:"";position:absolute;right:4px;bottom:4px;width:8px;height:8px;
+  border-right:2px solid rgba(30,37,85,.35);border-bottom:2px solid rgba(30,37,85,.35);
+  border-radius:0 0 3px 0}
+.gantt{display:flex;min-width:100%}
+.gsol{flex:0 0 210px;position:sticky;left:0;z-index:3;background:var(--card);
+  border-right:1px solid var(--line)}
+.gsag{flex:1;position:relative}
+.gbaslik{height:46px;border-bottom:1px solid var(--line);background:#f7f8fc;
+  position:sticky;top:0;z-index:2}
+.gsol .gbaslik{z-index:4;display:flex;align-items:flex-end;padding:0 12px 8px;
+  font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.gay{display:flex;height:23px;font-size:11px;font-weight:700;color:var(--navy)}
+.gay div{border-right:1px solid var(--line);padding:4px 6px;overflow:hidden;white-space:nowrap}
+.ggun{display:flex;height:23px;font-size:9.5px;color:var(--muted)}
+.ggun div{border-right:1px solid #ececf3;text-align:center;padding-top:5px;box-sizing:border-box}
+.ggun div.hs{background:#f0f1f7}
+.gsatir{height:40px;border-bottom:1px solid #eef0f6;position:relative}
+.gsol .gsatir{display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12.5px}
+.gsol .gkod{background:var(--navy);color:var(--gold);font-size:10.5px;font-weight:700;
+  padding:2px 7px;border-radius:4px;flex:0 0 auto}
+.gsol .gad{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gsag .gsatir{background:transparent}
+.gsag .gsatir.tek{background:rgba(240,242,250,.55)}
+.gwe{position:absolute;top:0;bottom:0;background:#eef0f7;opacity:.85;z-index:0}
+.ggovde .gsatir{position:relative;z-index:1}
+.gbar{position:absolute;top:9px;height:22px;background:var(--navy-2);border-radius:4px;
+  border:1px solid var(--navy);overflow:hidden;cursor:default}
+.gbar .gdolu{position:absolute;top:0;bottom:0;left:0;background:var(--green)}
+.gbar span{position:relative;z-index:2;color:#fff;font-size:10.5px;font-weight:600;
+  line-height:20px;padding:0 7px;white-space:nowrap}
+.gsure{position:absolute;top:14px;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.gyok{position:absolute;top:13px;left:6px;font-size:10.5px;color:#b06;opacity:.75;
+  font-style:italic}
+.gbugun{position:absolute;top:0;bottom:0;width:2px;background:#e03131;z-index:4;opacity:.8}
+.gbugun::after{content:"bugün";position:absolute;top:2px;left:5px;font-size:9.5px;
+  font-weight:700;color:#e03131;background:#fff;padding:0 3px;border-radius:3px;
+  border:1px solid #f3c7c7;white-space:nowrap}
+.gbos{padding:40px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.7}
+.gozet{display:flex;gap:18px;padding:10px 16px;border-top:1px solid var(--line);
+  background:#fafbff;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.gozet b{color:var(--navy)}
+
+/* Gate şeridi */
+/* satır başına 5 gate; fazlası alt satıra iner, yatay kaydırma yok */
+.gates{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  column-gap:26px;row-gap:40px;align-items:start;padding:16px 0 4px 12px}
+@media (max-width:1100px){ .gates{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:720px){  .gates{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.gate{min-width:0;position:relative;padding:64px 0 0 29px;break-inside:avoid}
+/* aşamayı taşıyan dikey çizgi: okun üstünden ilerleme kutusunun altına kadar */
+.gate::before{content:"";position:absolute;left:23px;top:64px;bottom:0;width:1px;
+  background:var(--navy)}
+.gcode{position:absolute;top:0;left:0;width:46px;height:46px;background:var(--navy);
+  transform:rotate(45deg);display:flex;align-items:center;justify-content:center;z-index:3}
+.gcode span{transform:rotate(-45deg);color:var(--gold);font-weight:700;font-size:13px;
+  outline:none;user-select:none;cursor:default}
+.gdel{position:absolute;top:6px;right:14px;z-index:4;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;
+  border:none;background:var(--card);color:var(--muted);
+  border-radius:50%;cursor:pointer;font-size:0;
+  box-shadow:0 2px 8px rgba(30,37,85,.18);
+  opacity:0;visibility:hidden;transform:scale(.85);
+  transition:opacity .18s,transform .18s,visibility .18s,background .18s,color .18s,box-shadow .18s}
+.gdel::before,.gdel::after{content:"";position:absolute;width:12px;height:2px;
+  background:currentColor;border-radius:2px}
+.gdel::before{transform:rotate(45deg)}
+.gdel::after{transform:rotate(-45deg)}
+.gate:hover .gdel{opacity:1;visibility:visible;transform:scale(1)}
+.gdel:hover{background:#e03131;color:#fff;transform:scale(1.12);
+  box-shadow:0 4px 14px rgba(224,49,49,.45)}
+.gdel:active{transform:scale(.96)}
+.gbody{padding:0}
+/* ok: SVG polygon + sabit kalınlıkta altın kontur */
+.gname{position:relative;margin:2px 3px}
+.arrowsvg{position:absolute;top:0;left:0;width:100%;height:100%;display:block;overflow:visible}
+.arrowsvg polygon{fill:var(--navy-2);stroke:var(--gold);stroke-width:2.5;
+  stroke-linejoin:miter;stroke-miterlimit:8;vector-effect:non-scaling-stroke}
+/* ok kutusu sabit yükseklikte; uzun ad taşarsa yazı küçülür (--fit) */
+.gname-in{--fit:1;position:relative;z-index:2;color:#fff;padding:6px 24px;text-align:center;
+  font-weight:600;outline:none;height:50px;line-height:1.2;overflow:hidden;
+  font-size:calc(14px * var(--fit));overflow-wrap:anywhere;word-break:normal;
+  display:flex;align-items:center;justify-content:center}
+.bar{margin:14px 3px 0 3px;height:22px;background:var(--gold);position:relative;
+  overflow:hidden;cursor:ew-resize;border:1px solid #7b7f96;touch-action:none;
+  user-select:none}
+.bar:hover{border-color:var(--navy)}
+.bar.dragging{border-color:var(--navy);box-shadow:0 0 0 2px rgba(30,37,85,.18)}
+.bar .fill{position:absolute;top:0;bottom:0;left:0;background:var(--green);transition:width .25s ease}
+.bar.dragging .fill{transition:none}
+.bar .lbl{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;
+  justify-content:center;font-weight:600;color:#1b1b1b;font-size:12px}
+
+/* Planlanan tarihler */
+.dates{margin:9px 3px 0;display:flex;flex-direction:column;gap:4px}
+.dt{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:4px 8px;
+  border:1px solid var(--line);background:#fff;cursor:pointer;transition:border-color .15s}
+.dt:hover{border-color:var(--navy)}
+.dt.acik{border-color:var(--navy);box-shadow:0 0 0 2px rgba(30,37,85,.14)}
+.dt .lb{color:var(--muted);min-width:52px}
+.dt .vl{font-weight:600;color:var(--navy)}
+.dt .vl.bos{font-weight:400;font-style:italic;color:var(--muted)}
+.sure{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:3px 8px;
+  background:var(--navy);color:#fff;border:1px solid var(--navy)}
+.sure .lb{color:rgba(255,255,255,.65);min-width:52px}
+.sure b{color:var(--gold)}
+.sure.hata{background:#fdeaea;border-color:#e7b4b4;color:#a33}
+
+/* Takvim penceresi */
+#cal{position:absolute;z-index:65;display:none;width:250px;background:#1b2145;
+  color:#e8ebf5;border:1px solid #2c3565;box-shadow:0 14px 40px rgba(10,14,35,.5);
+  border-radius:10px;padding:10px;font-size:12.5px;user-select:none}
+#cal .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+#cal .ctitle{font-weight:700;letter-spacing:.3px}
+#cal .nav{width:26px;height:26px;border-radius:6px;border:1px solid #39427a;
+  background:transparent;color:#e8ebf5;cursor:pointer;font-size:14px;line-height:1}
+#cal .nav:hover{background:#2b3370;border-color:var(--gold)}
+#cal .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+#cal .cdow div{font-size:11px;color:#9aa3c0;padding:4px 0}
+#cal .cday{padding:6px 0;border-radius:6px;cursor:pointer;border:1px solid transparent}
+#cal .cday:hover{background:#2b3370}
+#cal .cday.disi{color:#5b658f;cursor:default}
+#cal .cday.disi:hover{background:transparent}
+#cal .cday.bugun{border-color:#6d78b5}
+#cal .cday.secili{background:var(--gold);color:#1b1b1b;font-weight:700}
+#cal .cfoot{display:flex;justify-content:space-between;margin-top:9px;
+  border-top:1px solid #2c3565;padding-top:8px}
+#cal .cfoot button{background:transparent;border:none;cursor:pointer;font-size:12px;
+  font-weight:600;font-family:inherit;padding:2px 4px}
+#cal .cbugun{color:#7ea6ff}
+#cal .ctemizle{color:#ff8f8f}
+
+/* Gate arası + butonu */
+.plus{display:flex;align-items:flex-start;justify-content:flex-start;
+  padding:82px 0 0 14px;position:relative}
+.plus button{position:relative;z-index:2;width:30px;height:30px;border-radius:50%;
+  border:2px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;
+  font-size:0;padding:0;box-shadow:0 2px 8px rgba(30,37,85,.14);
+  transition:all .18s ease}
+.plus button::before,.plus button::after{content:"";position:absolute;top:50%;left:50%;
+  background:currentColor;border-radius:2px;transform:translate(-50%,-50%)}
+.plus button::before{width:13px;height:2.5px}
+.plus button::after{width:2.5px;height:13px}
+.plus:hover button{border-color:var(--gold);background:var(--gold);color:var(--navy);
+  transform:scale(1.15);box-shadow:0 4px 14px rgba(245,180,0,.5)}
+.plus button:active{transform:scale(.97)}
+
+/* Tablo */
+table{width:100%;border-collapse:separate;border-spacing:0;margin-top:44px}
+th{background:var(--navy);color:var(--gold);padding:12px 10px;font-size:13px;text-align:left}
+th:first-child,td:first-child{text-align:center;width:76px}
+td{padding:11px 10px;vertical-align:top;font-size:13px}
+tbody tr:nth-child(odd) td{background:var(--row-a)}
+tbody tr:nth-child(even) td{background:var(--row-b)}
+[contenteditable]:focus{outline:2px solid var(--gold);outline-offset:1px}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;
+  background:var(--navy);color:#fff}
+.clist{list-style:none;margin:0;padding:0}
+.clist li{display:flex;gap:7px;align-items:flex-start;padding:2px 0}
+.clist .no{color:var(--muted);min-width:16px}
+.clist input[type=checkbox]{margin:2px 0 0;accent-color:var(--green);cursor:pointer;
+  width:14px;height:14px;flex:0 0 14px}
+.clist .txt{flex:1;outline:none;min-height:17px}
+/* boş şart satırı tıklanabilir kalsın (metne dahil değildir) */
+.clist .txt:empty::before{content:"\00a0"}
+.clist .txt.done{text-decoration:line-through;opacity:.6}
+.clist .x{cursor:pointer;color:var(--muted);font-weight:700;padding:0 4px;opacity:0}
+.clist li:hover .x{opacity:1}
+.clist .x:hover{color:#d33}
+.addc{margin-top:5px;font-size:11.5px;padding:3px 9px;border:1px dashed var(--muted);
+  background:transparent;color:var(--muted);border-radius:4px;cursor:pointer}
+.addc:hover{border-color:var(--navy);color:var(--navy);border-style:solid}
+
+/* Kişi seçim hücresi */
+.people{cursor:pointer;min-height:22px;display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start}
+.people .tag{background:var(--navy);color:#fff;border-radius:3px;padding:1px 6px;font-size:11.5px}
+.people .ph{color:var(--muted);font-style:italic;font-size:12px}
+.people:hover{outline:1px dashed var(--navy);outline-offset:2px}
+#pop{position:absolute;z-index:50;background:#fff;border:1px solid var(--navy);
+  box-shadow:0 6px 22px rgba(0,0,0,.22);padding:8px;min-width:190px;display:none;
+  max-height:260px;overflow:auto}
+#pop label{display:flex;gap:8px;align-items:center;padding:5px 6px;font-size:12.5px;
+  cursor:pointer;border-radius:4px}
+#pop label:hover{background:#f0f2f8}
+#pop input{accent-color:var(--navy);cursor:pointer}
+#pop .none{color:var(--muted);font-size:12px;font-style:italic;padding:6px}
+
+.hint{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.65}
+
+/* --- Görüntüleme (salt-okunur) modu --- */
+body.view #openTeam,body.view .plus,body.view .gdel,body.view .addc,
+body.view .clist .x,body.view .hint,body.view .drawer,body.view .scrim,
+body.view #pop{display:none}
+body.view .bar{cursor:default}
+body.view .people{cursor:default}
+body.view .people:hover{outline:none}
+.viewbadge{display:none;align-items:center;gap:8px;background:#eef1f8;border:1px solid var(--line);
+  border-left:4px solid var(--navy);padding:8px 14px;margin-bottom:12px;font-size:12.5px;
+  color:var(--navy)}
+body.view .viewbadge{display:flex}
+
+#ganttYazdir{display:none}
+
+@page{ size:A4 landscape; margin:10mm }
+@media print{
+  #kayitUyari{display:none !important}   /* satır içi stille açıldığı için !important */
+
+  /* --- yazdırmadaki Gantt --- */
+  #ganttYazdir{display:block;margin-top:22px;page-break-inside:avoid;break-inside:avoid}
+  #ganttYazdir h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--navy);margin:0 0 8px;padding-bottom:5px;border-bottom:2px solid var(--gold)}
+  #ganttYazdir .gantt{border:1px solid var(--line)}
+  #ganttYazdir .gsol{flex:0 0 165px;position:static}
+  #ganttYazdir .gbaslik{height:38px;position:static}
+  #ganttYazdir .gsol .gbaslik{font-size:8px;padding:0 8px 6px}
+  #ganttYazdir .gay{height:19px;font-size:9px}
+  #ganttYazdir .ggun{height:19px;font-size:7.5px}
+  #ganttYazdir .ggun div{padding-top:4px}
+  #ganttYazdir .gsatir{height:28px}
+  #ganttYazdir .gsol .gsatir{font-size:9px;gap:6px;padding:0 8px}
+  #ganttYazdir .gsol .gkod{font-size:8px;padding:1px 5px}
+  #ganttYazdir .gbar{top:5px;height:18px}
+  #ganttYazdir .gbar span{font-size:8px;line-height:16px;padding:0 5px}
+  #ganttYazdir .gsure{top:9px;font-size:8px}
+  #ganttYazdir .gyok{top:8px;font-size:8px}
+  #ganttYazdir .gbugun::after{font-size:7px;padding:0 2px}
+  #ganttYazdir .gozet{padding:7px 10px;font-size:8.5px;gap:12px}
+  #ganttYazdir .gbos{padding:18px;font-size:9px}
+  .topbar,.addc,.clist .x,.hint,.plus,.gdel,.drawer,.scrim,#pop,#cal,.uyari,#kayitUyari{display:none}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding:0}
+
+  /* yazdırmada satır başına 7 gate — tüm ölçüler küçültülür */
+  .gates{grid-template-columns:repeat(7,minmax(0,1fr));column-gap:11px;row-gap:24px;
+    padding:10px 0 0 9px}
+  .gate{padding:42px 0 0 21px}
+  .gate::before{left:16px;top:41px;bottom:0;width:1px}
+  .gcode{width:32px;height:32px;left:0;top:2px}
+  .gcode span{font-size:9px}
+  .gname{margin:1px 2px}
+  /* baskıdaki yazı boyu, yazdırma anında kutuya göre ayrıca hesaplanır (--fp) */
+  .gname-in{padding:4px 12px;font-size:var(--fp,9.5px);height:32px;line-height:1.2}
+  .arrowsvg polygon{stroke-width:1.8}
+  .bar{height:15px;margin:6px 2px 0}
+  .bar .lbl{font-size:8.5px}
+  .dates{margin:5px 2px 0;gap:2px}
+  .dt,.sure{padding:2px 5px;font-size:7.5px;gap:4px}
+  .dt .lb,.sure .lb{min-width:34px}
+
+  .header{margin-bottom:8px}
+  .header .title{padding:8px 14px}
+  .header .title h1{font-size:18px}
+  .logo{min-width:120px;padding:6px 14px}
+  .mekamark{width:92px}
+  .logo span{font-size:7px;margin-top:3px}
+
+  table{margin-top:16px;page-break-inside:auto}
+  th{padding:6px 7px;font-size:9px}
+  td{padding:6px 7px;font-size:9px}
+  .pill{font-size:8px;padding:1px 6px}
+  .clist li{font-size:9px}
+  .people .tag{font-size:8px}
+  tr{page-break-inside:avoid}
+  thead{display:table-header-group}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <button class="btn team-btn" id="openTeam">Proje Ekibi <span class="cnt" id="teamCnt">0</span></button>
+    <button class="btn" id="ganttBtn">Gantt Şeması</button>
+    <button class="btn" id="rst">Sıfırla</button>
+    <button class="btn gold" id="prn">Yazdır / PDF</button>
+  </div>
+
+  <div class="viewbadge">Görüntüleme modu &mdash; bu bağlantı salt okunurdur, yaptığınız hiçbir değişiklik kaydedilmez.</div>
+
+  <div id="kayitUyari" style="display:none;background:#fff8e6;border:1px solid #f0d68a;
+       color:#7a5c00;padding:9px 13px;margin-bottom:10px;font-size:12.5px;line-height:1.5">
+    <b>Dikkat:</b> Bu tarayıcı sayfanın verilerini kaydedemiyor; sekmeyi kapatınca
+    çalışman kaybolur. Yedek almak için <b>Ctrl+S</b>, geri yüklemek için <b>Ctrl+O</b>.
+  </div>
+
+  <div class="header">
+    <div class="title"><h1 contenteditable="true" id="projTitle">GATE MODEL / YIKAMA SİSTEMLERİ</h1></div>
+    <div class="logo"><img class="mekamark" alt="MEKA" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAClCAYAAADCg4/NAAAAAXNSR0IArs4c6QAAIABJREFUeF7tnXlgHHXZx7/PzCbpmeym5RDRF32Ro03SYt9XLpFom03L5RlRBEURBBW5L0EpAlWglUNALgVUECgqgtAmKRhfjoJaS5O05SgKgnIlu5u0tDl253mZFKRA2+zOzszOzH7n3/ye6/P8kux+53dIoj6pCOdjAegHsDac6W8269cg6PW0HkUfLPwyvbLtdgBh7b2niN50XlM3578Nyf0EgmpfAjIICZAACZAACXhAQBXzM1373A3MtT87FfQkGpIHQ3EbgHEFGXJwBAjIxelc9fewauFQBIrJq4REQ9N3ofI9AGPyMuAgJwSyYsj01IrWlU6MaVM8AQmxAFB89eXpwQLkniGt+sZr3Xe/XJ4I8qh6xjEVicFnF0BwDICqPCw4hARIgARIgASCSUDluHT33tdRAAhme4KbVXkJANtMadw+Z1TcrSL/A0CC25coZCZ3j62s/OK/l92zPgrVhK0GSTQk10MxNmyJM9+iCPxbRM5Nde79cycfBoqKHBLjxNSmfWEYNwP63yFJmWmSAAmQAAmQwOYJUADgzHBEoKwEACNRlzwDgtMBxB3holEBBGQtoMelu9pu5YrkArC5NNReAfAcgPe75I9uwkHAgshCHTbPyKy+z+4/n00IbNeQHD+k+DGAL3MJGKcGCZAACZBA6AlQAAh9C0tTQPkIAJOnzdwllzOvgcj+gBql4V1WUe0VyQ+rKV/OPL742bKqPADFUgAIQBNKkoLg37D0jHR3/NfAwlxJcgho0ER90wGALACwW0BTZFokQAIkQAIkkD8BCgD5s+LITQiUiwDQYtbWZU5UkbMATOIU8I1ARoEFmQ3mJVizaNC3qAwECgDlOwksKO7QmHEWlbe3JkH11OZa07QuhMrXAFSW7/Rg5SRAAiRAApEhQAEgMq30t5DyEAASDck6KBYAMotv/32dYarAMkNxQqq77RFfI5d5MAoA5TwBVHpU8PVMV/UfuApg40RITE0eLIbMV+gu5Tw1WDsJkAAJkECECFAAiFAz/SylLAQAqa1Lfk0FF/Htv59z6z+xNojKdVqVOze9bElfSTIow6AUAMqw6ZuUbF8DeKuZldN6Vre+WN4ogAl7zNmmIpuzr375JgCz3HmwfhIgARIggYgQoAAQkUb6XUb0BYCRvf+WaX/5/yRP/vd7fv0n3hoVPSXT2f76VaV8/CBAAcAPysGO0W8Ikr2dbX8u81M4JVGXPBCC129GwDbBbhmzIwESIAESIIECCFAAKAAWh75FIPICgNQ0NH/GULU/+1Wz8yUjYG8FuDEW0+/1LG//d8myKKPAkmhoehAqHy2jmlnqOwkobpMB8xupNYv6yxXOxBkHT64YHDpHRU8oVwasmwRIgARIIKIEKABEtLFelxVtAaCmIfkBA7gcioO9Jkn/oxBQ9EPkuPSkwTvQ0ZElL28JUADwlm9YvK8zTOMTvY8v/ktYEnY1z5YWM/FEXxLAHQAmuOqbzkiABEiABEig1AQoAJS6AyGNH2EBoLExFk9VHCAqt/CzX2Cm56KcqSf0P96+psxXJXveEAoAniMOTYC70rvVfA4Ly+9KwJr6AxOGDl0OkSNC0y0mSgIkQAIkQAL5EqAAkC8pjnsbgegKAPa5T5XZ3C8UmM2mB4SAIKvQU+P9w9c++2zHQECyimQaFAAi2VYnRekGhczOdLX9nxPrMNvUTpvdDMv6rQLjwlwHcycBEiABEiCBzRKgAMCJ4YhAdAWAeH3yUwZwCz/7OZoYXhqthuDz6c62bi+DlLtvCgDlPgM2qV+B9kxl74FYtmy4XLDs1Ng4JtNb9QeBziyXmlknCZAACZBAmRGgAFBmDXer3IgKAI2NsURv5f0APuYWKfpxkYDi6vTn9jkec+daLnqlq00ISKK+qQOQ/UmFBACsV8hhma7W35cLjUTdrAMhhl0vr/0rl6azThIgARIoNwIUAMqt4y7VG00BoLZu1udVjF8AqHIJFN24SyADUw9KP97+sLtu6e1NAlJbn1yowOeIhARGDtwQaXtPtvqQVasWDkWdSGLGrBoMGQ8BqIt6rayPBEiABEigjAlQACjj5hdTegQFgI1v//8KYFoxZGjrLQER/HlcqqbxhRcWbvA2Unl6l0R98y2AHlae5bPqdxIQ4BXLMI7LrFj826jTqa1vPlqh1wAwol4r6yMBEiABEihjAhQAyrj5xZQePQEgUZ88BoKroVz5WczM8NxWkIPot9Mr2u3P6XxcJkABwGWgEXCXVeCuzG41X4jyjQDvrz8wsRbDywB8IAI9YwkkQAIkQAIksGUCFAA4OxwRiKAAUJdcDsF0Rzho5C8BxT/FMPdNdS56wd/A0Y9GASD6PXZS4bMicmqqs/U3ToyDbzPXSNQ/cjqAs3n3a/C7xQxJgARIgASKJEABoEiA5WoeLQEg3pD8iiguB1BTrh0NWd0DAlyTmjR0Gjo6siHLPdDpUgAIdHtKltywQm6BOXhS5vGOTMmy8Chw9dTmnU1D7+T+L48A0y0JkAAJkECwCFAACFY/QpNNdASA+PTGOHKVdwhg3/rErZ8hmYMieNqyrGMy3Uv+NHJWGR9XCEiiPvlLAIe74o1OIkPgjV+4MzPdS34XpV+4nXeeU9U7LncqFKcASESmYSyEBEiABEiABLZEgAIA54YjAtERAGoakkcZigsAbO8IBY1KRcA+lPyO4Zh58rrli14tVRJRiyuJuuRVEHwzaoWxnqIJDAP4+bDg++s6214p2ltAHEyua/qfnMiVAPYMSEpMgwRIgARIgAS8JUABwFu+kfUeDQFg0rRPvNeyYvZnv4MAxCLbrqgWpvocgHPSk4dv41YAd5psCwDzIDjLHXf0EjECawA9Id3VvigKqwB2mHHwuIHBwdNURt7+T4xYr1gOCZAACZAACWyeAAUAzgxHBKIhAMTrm44UiP32/72OMNCotATsGwEU95hG7oyeFfc/VdpkohGdAkA0+uhVFVkorotZsfNfXXXfS14F8ctvbV1yH8vApaL4iF8xGYcESIAESIAESk6gCAFg8rSZu+TU/KyIVGytDlXdHYpmbq8rebddTCD8AkBNQ/IDBvBDKD4H8Oo/FyeH364yKjp3wvj4dS8sXbjB7+BRi0cBIGoddb+e55GzDkuvWvKQ+67987jNlMYJw2bFSQKxT/6v8i8yI5EACZAACZCAcwIKvGJArjUM/NupFwt4MLWidZWj1XyNjbHJL1aPxeTNR88NrDdkILYXjNz5CrGvV9uqUOC0hojZ2Xec32qK8UiQ67LUeDzVueefgblWkPPcWm6105KHqoXLuPc/rB18W95L1bC+lVmxZHkkqilhERQASgg/HKHFguoCjQ3NC/ONAJOmNX/EsqwbAKkPB3dmSQIkQAIkQAIjx16vgWF9PjOcWOmYxyrkgIU5x/ZbMpwxo6J2ePIhaumPISPLq03XY0TOodpnLJ1kDo39RY9ZNRjo8qYih4UezBufio5Pn72TWLl5UPkCAPEpLMN4RyCriguM8ealqccW9XsXJvqeKQBEv8dFVyjASwJ8vLer7YminZXAgf32Pxur+g5ULyxBeIYkARIgARIgAccEVPG0GPhMurOt27ETLwxbWszEU/2nwrLOB7a+PcCL8CH0aV9h9qxkzcNSqxc9GsL8Q5dyor7pANjXWgPx0CXPhDdLQIBXcqoH9nW3L3O0oolcRwhIvCE5VxTnkgcJbI2AQH5cu8H47po1i4KtVr+7CKnZvXkPI6Z3AXgfu0wCJEACJEACYSIQPAFgrrFt3YPbDBvmxVAcwTerec2m9QpdUpHFqa+ubl/DLy55MStq0OQ9mnbI5WQBFPbbfz4RIiDQGzEudiJXAThvqkxqSB5nKa527oKW5UDAVtxMUz/66uPtT4ep3h333nvs+nUTv6vAOWHKm7mSAAmQAAmQgE0gSAKAfZvOhg3DHxbTukSBvdih0QiIBegrEPxKMHR5qrPjhdEs+HM3CMw1ausemamChQBq3PBIH8EhoNBhAT6V7mq/LzhZhSsTCgDh6ldpsxW9Jt3Zflxpkygsenxq8zQRLIHoFo4vKswfR5MACYxCYON1PbZQ+GRwWYkA+jEuCw1uh5jZWwSCIgBM2GPONpXDuUNg4AxV7Mw3/6PNUh2GyEqIXGtZsdv7uu5Nj2bBn7tDYPKuh0zMVQ1cD8Wh7nikl8ARUDycUzmkf2VrKnC5hSAhCgAhaFKAUkwD1v7priVdAcppa6kYifrkNQCODkm+TJMEokBg4PUv1pdZqLg4qMVYlYYZGx5sh8I+sZzPuwm8BtHlgPFPx3BU44DMBtRw7IOGIwSCIADYV6mZiq8pcCSAHdmaUQkMQtAmyF1du77yjyHcPjlqgUEekJjetC9y+IO90znIeTK34ghYgtP7Otvmc0tN4RxlUt2sz1hinFa4ad4W9i/fh3gybN68gj1Q9JfpzvYvBzvJjdlVT539v6ZhPQBgQhjyZY4FEXgRgiegsL9s2n9jHJ3uK8A6hQ6NGlnEfqvdDxm5FcOAyn9B9KOj2pXngA2quCjT3XZeYMu3Dy97ou8xADMCm2NJE9N/CYzzjJh1r9M0NGfubqm1GEDMqQ/abSRQWgGgxazZvX+aEcOpgM4GkGBfRiWQFeBKhfXzdNcS++BG+/A/Pj4SiNc13ymin/UxJEOVhsALgHVAiF5MlobSZqLKxF0aJ5uxCs/UXDGxLyAXARgfmKqZiHMCoj3I4VPple0PO3fiveWUKS2VLxl996gg6X00RigBgUWGYL7A+Fc2p2OgliMBwJDYkBGT7Gj5D8mwmkM6KIahOQMxsXCQCK4Yza5Mf04BIOyNF3lOgFNSna2/cVpKom5mA8S0T2mmAOAU4ht2JRMAZsyoSAxOaobgbAAfBlBZZCnlYP6CipxdBV38cmfbK+VQcNBqTDQ07wfVRfzeEbTOeJKP/eHvl7UbzG9wlU1hfB19aC4kRKI+OQfAbfYL2ULsODawBOw3obeku9u+EtgM7RNfpjTNNEy5G8C4IOfJ3JwS0DsskTP7Otv+4dSDYzv7Q/HQ5BZA7auF+LybAAWAsM8KCgCB6mCpBIB4Q/MJYunJkJEbdDz/vBgo6E6SUX1YRb6bqexdimXLhp24oE3xBOL1zUsEOrN4T/QQEgL/VtHjMp3t9md+PnkS8PwPOgWAPDsRrmH/yOXwxf5VbfYS2sA9I6cUDw+2QbEPP7QErj0uJUQBwCWQXrihAOAFVT99UgDwk/aosXwXAKa0VCZi/TdA9XMAxo6aIAfY6sjNOc2e39f9sddF6bkWkZSGQO202c1qWb8HUFWaDBi1BATsVQAPZC05lAcC5k+fAkD+rDjyLQKDAG5Kd+3zzSD+o6upb2oxIFcB2IZNiyoBCgAB7iwFgAA3J6/UKADkhcmvQf4JAHONmoZH/stQ2Kub7Cv+PP+M6BdDj+IooH0QmY8K68r0siV9HsWh27wItJjx+r42AT7OuZsXsOgMEukR4IJUZ6u9NZNnbuTRWc//uHMFQB5dCOcQ+2qb49KdrQ8GKf2JMxonx4YqFgKyP/8BBKkzbudCAcBtoi76owDgIsySuKIAUBLsWwrqhwCwXUNy/CB0pqFykQK78v/nqFPAPjtmtapekqn6wG1Ydh2X/I+KzNsB8WmzPy05vY7XPnvLObjetUMM49upFa0rg5tjcDKjABCcXoQsE1mv0OuqBOe83Nn2WiCS33iy91Gv5zIXwHsCkROT8IgABQCPwLrhlgKAGxRL6YMCQCnpvyu2xwKATGhIbhOz9IsicgKADwSq+GAmY98+02EJLunrbPsj3ziWvkmJGbNqdMi8WaAH8uDR0vejRBmsU8H8KmB+YL6XlAhEPmEpAORDiWO2QECWq8rJme7FHUFAFJ8+eyfJWfbSf/vgSc/ndhBqLt8cKAAEuPcUAALcnLxSowCQFya/BnkmALS0mJNWp3dRmN9Q0SMA1PpVU4jj9EKt2y3DmF+SQ2hDDM7L1Gvrkoeq4BJg5MBKPuVLYJmqcWqme6//C+IW5SC1xfMvSdwCEKR2u57LBgguQ4V1Ucn3vtmHFpmZrwJyLt/+u97nADqkABDApryZEgWAADcnr9QoAOSFya9BnggA9pf/J1IftxA7HsBsQHnF36gNlU4A11eK3sg3jKPC8m3AtnUztxuW2KXAyKGVFb4FZqAgEsiK4Ooh4MJ1vIZzq/2hABDE6RuqnGQ5DPlOesXih0qZ9qT65G6W4mIIDuLb/1J2wq/YFAD8Iu0gDgUAB9ACZUIBIFDt8EIAqK1v/qpCvw1gOgAjUAUHLxkLkEViyU9SUyYuwcKFueClWL4Z1dY3tSjkIm5fKd858I7Kn4eFb6W3GVqEjg77rA4+myFAAYDTolgCg6r4EWJDl2Ue78gU68yR/cjb/74jAVwMoMaRDxqFjAAFgAA3jAJAgJuTV2oUAPLC5NcgNwWAybseMtGq3DBXIZ8HsKNfNYQ2jqJfDNykwPXpXWtW88t/sDo5ccbBk2ODgz+A4Gju/Q9Wb0qYjX0LwO9judhxr66676US5hHo0BQAAt2ekCQneFxzcmRmZeuKUmRsv/3PAT8RYFYp4jNmKQhQACgF9TxjUgDIE1Rgh1EACFRr3BIAJk47YJeYZudD8QkA4wNVZDCTeV5FFowxjVtfWr6oF4AVzDTLN6tEXfOBELWvfvtg+VJg5e8ioBgA9Oj07vFfU7Tb/PygAMDfGzcIWKo4ccLEtTe8sHTpBjcc5u1j5zlVtWP0cDWsa6Ew87bjwJAToAAQ4AZSAAhwc/JKjQJAXpj8GuSGABCvT37MABYosAfA/5V59O5JKE5NV/W2YtkyXvGXBzC/h0zcbeakisrYWap6Mrd++k0/FPHW5CzZs39layoU2fqcJAUAn4FHONyTlmCO36fibjz5X28FdO8Is2Vp75Z377BEzvR7vo2kMWNGRWJocgugt7AxmyVAASDsE4MCQKA6WJQAsHGLXMvr+/x/wLekebV16PVDER81xTimp3Pxk3lZcFApCEh8WnOjqP4Kih1KkQBjBp+ACuZmOtvsv332tgA+mxCgAMDp4BoBFTkx01l9JeDTATmNjbFEb8VRgFzjWhF0FBICXAEQ4EZRAAhwc/JKjQJAXpj8GuRMAJhrTN7j4e2zWfmaCE6F8nycUfsl0qOK26Qyd07JbzYaNdnyHhCf/qm4YW04R1VPKW8SrH4UAush2DPd2dZNUm8nQAGAM8JFAvJMLGd+1K9DNybv3vweK2Z1KGQXF4ugq1AQoAAQ4DZRAAhwc/JKjQJAXpj8GuRAAJD4tDnTDSt7vEKO4OFoo3ZKAVkNw7oivUv8Bu4ZHpVXqQfIpIbkRyzFXQC2L3UyHsa3T7B/DUA1tzg4p6yK31RYQ0e+uqpjnXMv0bOkABC9npa2IpGz052t83xIQhJ1yTMh8COWD+UwRGEEKAAUxsvX0RQAfMXtQTAKAB5Ade6yMAGgxUzUZ5oVcooAH+cXh1G5vwZohyHmpb2de/0RmMuD/kZFVtoBO+3UOKZvYtV8QL9V2ky8jq7LATwMyNdev+VqnNfRIux/A0SPSne2/zrCNRZcGgWAgpHRYBQC/0bO2ju9ask/vSRV05D8gKHyCKBRVn+9RBhy3xQAAtxACgABbk5eqVEAyAuTX4PyFQASM2bV6KB5JAzrm6JcGZdHf14SwR2G5K7qWbHfGn75z4NYAIbEpzRNF1OWAJgUgHS8SkEheo6llbcZGLZXOtR7FSj6fsUC9GGNZY/ILH/guejXm1+FFADy48RRBRGQi9JdrWcWZFLQ4LlGov6RywAcX5AZB0eIAAWAADeTAkCAm5NXahQA8sLk16B8BIDJ0w7YJWflvgPoFwHU+pVbWOOI4mkL+EksJ3f2rG617wrnIWEhaWaiPvlLAIeHJF2HacoqCI5Nd7Y+lKhvOoZnXTnE+JZZv0IWZCYNzkNHh721ouwfCgBlPwU8AfDPnKmz+h9vf9oL74m62Q0QqzXie7+8QBchnxQAAtxMCgABbk5eqVEAyAuTX4NGEwBq65L7qOgZgMziUuFRuiLIQfEXUT3XGF6/tOfJh9f61UfGKZ7ANlOapmdNeQjA+OK9BdeDKK4YHho6f+1THT21e86p1vW5xwDsFtyMA5+ZLfD9TWAcn+pavDTw2fqQIAUAHyCXWwgFBgV6Wbqr3f1VAC0tZmJ1368gsK81MsuNLet9kwAFgADPheALAIBRW5c8WQXvDzDHkqUmglTMlN+9srx1hdMkEnUzGyDmMh5A55TgW3ZbFgDmGvH6pQcLcC5g1QFSUXy0SHuwALnTEj2zr3boeb4JDF+vEw3Je6A4KHyZF5Txs6rGKZnuxfbS/5EzKWrrkoeq4LaCvHDwOwkMwNAbzIGx3+158u6yF/4oAPAXxCsCXTpsHJJ5YvGzbgaobkjuaerIH8Gd3PRLX2EjQAEgwB0LgwAAoMUckRH5bJ7AwoX2B0/Hy6IpALg3sTYnAOww4+Bx67ODR4mFCwBM5GF/o/MW6A9SO8bmYdGiwdFHc0TQCLyx+vORqL/9B3CrmZVTe1a3vvhmD944+PBRQKcFrS8hy+dJCE5Ld7bdE7K8XU+XAoDrSOnwDQLrIPhJunOfc9w6WGe7huT4QcWNAnyab5XKfZ5RAAjwDAiJABBgghFIjQKAe018pwAwedemHXKVxlmAHseVcPlxtgQtfZ1td+Y3mqMCR8Be/flE5laIfBYa4dWfoj2vy65z013tV729B3ONmqlLjzIM/Sl/54ubnQLcLEb27N4VD/yrOE/htqYAEO7+BT37pZKTo1OrWle6kKgk6pvmKHCpIEKnGysGILCXbXI7Q0GThAJAQbj8HUwBwF/egYxGAcC9tvxHAKgdeqL21bG7qGFdDOgBfOtfAGOReePH91/wwtKlGwqw4tCAEKitn723IncbIFHetqUKLFHkju3ruv/v70Q/adpB781ZQ3cJ8D8BaUs401DtUcM4JZOtvg2rFg6Fs4jis6YAUDxDetgygT6FLshsiF2MNcUtuZs4o3FyxVDlfAW+FKG3//YSW/swQ3tJ1w6cSIUQoABQCC2fx1IA8Bl4EMNRAHCvK7YAYABH5gx5j6F6MYAPuue9jDxZ+FZ6TO/1WLZsuIyqDn2p9naXgaGBKxVyGICq0Be0lc/Morg01b3P+ZtbOTuyDWBC1ZEQ/TGAsRHm4Edpi0wjdmLPivvsw8odb3XzI1GvYlAA8Ios/doEFKp/UjN2cmbFouXOkbSYNQ39nzJUfwRgZ+d+gmap/xKRc1XxTQAfDlp2wc6HAkCA+0MBIMDN8Ss1CgCukv6XKFoVcghEJ7vqubycrYWFY9JTahZi4cJceZUe3mpr65JNKrgcwO7hrWLUzO0voZ1iyJdSK7a8anZS3azdLTHsbQD7j+qRA7ZGYEhFzpgwvvraF5YuLMtVQRQA+AviLQFFvwDnj5u49iqnS+8m7978nmyFni+KrwIwvE3YJ++CnAI3xSBX51SvAzDDp8gRCUMBIMCNtA/YutnU2PVByzFnDb2SXvXRF9w6lyRo9QUpHwoArnbDXqZqbxPjVrHisKoAT0HkxFRnq736rizf/BWH0F/r2p3nVOtYax6gRwEY4290X6MNKHBNprL39K2tUBk5/HN46BhRvZBXfhbZH9VVMOTQdGebvU257P4WUAAocv7QPC8Cf9KcnphZ1f54XqM3HdTYGKtNVX1SVS8F8L6C7YNr8E9YOMO05E+5mNqnkVIAKKhXFAAKwuXrYLEAfVGA179oB+tRwW/Gj6+5slwVfz+7QQHAT9qMVQCBrAId9tu/vs7WvxVgx6ElIFDb0DxbofOhmFqC8L6FFOCVnOqBfd3tfx0t6KSps//XMqzLAOwz2lj+fKsEFNCr0pOGTyrHK0EpAPC3ww8C60XkhFS2+heFHrgxadon3qtW7EIFvhyZA48EOVH8ariy6tSxg2IOy8C9FAAKnYYUAAolxvE2Abkqlhs889VVHevIw1sCFAC85UvvRREYgOIOAc5Jdbc9X5QnGntGIDFjVg2GjbOhOAFApWeBAuFYfp3OVR+Zz2fkHffee+y6dRNPEeAsrgIounl9WeTmrO26f2nRnkLmgAJAyBoW1nQV2mGZOKb/8Xb7wI08nxYzUdc3B4JfA5iQp1EYhr2ggnMynW2/2LbukG0pADhpGQUAJ9RoQwHArzlAAcAv0ozjkMB6gc6vELn45c621xz6oJmHBCbVN8/KwboqUjc/bZ6XZi3db+3K9ofzxbnxVgTLXhm7Z742HLdFAo+mczX75yO+RIkhBYAodTPYteQMw/p8byJ7d75LbSbuNnNSRYX5UwVagl1aIdmJpcA94yorD/v3snvWb1t3yHYUAArh9+ZYCgBOqNGGAoBfc4ACgF+kGacIAusFcmJq0uCN+X4uKSIWTQsgMHnXQyZaVQMnq+q5gHj+XaWA1FwfKpC/pLpaP1Ko40RD0zyo2KsjxhVqy/FvJ2Apvt7X3fazcuLi+S9Voj45B8BtAKrLBqwgB+VhPe/utz4ay1V8+tVV972Ux1yQRH3THEDs5fFRel6FYG66s+1quygKAE5bSwHAKbnytqMA4Ff/KQD4RZpxiiIg+pzAODZVO7iEIkBRJN00ltr62XsprFsB7OSm4wD6yqkhTZkVrX8sNLdJDck9LQvXQDC9UFuOfxeBv4uY+6c6FwXu7CKvekUBwBOy8gyg2wMY74n78DrNCfSLqa72haOVsM2UxglZo/I3ECRHGxuin1sKeaAiN/jpN/cgUwBw2j0KAE7JlbcdBQC/+k8BwC/SjFM0AcUjalnfzqxaYh9UXHangRfNz2UH9ue/nFF5igrOjczZT1tgpKp/yVR9YF8su27YAUYjUd98BaBfAzDWgT1N3iIwCMEV6fXm97BmkX2TUeQfCgCetFjuBtS+riRKX17dISW6vBKy32h77mrCsM0pAAAgAElEQVSnJQ9Va2TlSJSetQrjO5muxTe9WRQFAKftpQDglFx521EA8Kv/FAD8Is047hDQO4Zywye8tqojnxWK7oSkl80SeOOue3v15wcijigHyJfTXa32SgdHT21dch8LuEkEH3LkgEabEviHWnJUZmXhqzHCiJECgAddE5XfWrB+JSL2m27e2/t2xpYBPaq3q/0/X4Lf2YLqqc21pqEdAOo9aE/pXCoeTldVJbHsnvUUAIptAwWAYgmWpz0FAL/6TgHAL9KM4x4BvTI9IX46li7c4J5PeiqIQGNjLN5beaZAzgPUKMg2ZIMVutxQ+WSRN1EYibrklRAcDSAWMgRBS3cQqncMV8ROWbd80atBS87tfCgAuE3UXq+k8lujCt+2hvRO5T2d7yIs0Kcsc/yemcfvymwOf7yh+QRRte84jcyjgL286/OZrra7Ni2KKwCctpgCgFNy5W1HAcCv/lMA8Is047hIwD6k99xMZe9FWLbMyZJsF1MpT1eT92jaIZeVxwDsGHUCKnJSvH/wmmef7RgoptaRv7UwF0PwnmL80HaEwPMq+F6mc59fAnOtKDOhAOBBd20BICexr5syPFMVo+539yCFoLu0BHpaqqv9x+9MtLYu+T4VtALYPehFFJSf4OH0enPmO/cWUQAoiOImgykAOCVX3nYUAPzqPwUAv0gzjqsEVHog1jnprvbrAUT6C4Cr3FxyFq9vWiCQk6K+9x9AtxrWlzMrXDl3QuINyetFcZRLbShnNzkA9+RMPb2wa8vDh4wCgAc9e1MAGF9pDG4YGvwbgF09CBN2lyvMoTH79Tx599pNC6mtb/qBQk4DYJ+hEIlHIUNi5GamVyx56J0FUQBw2mIKAE7JlbcdBQC/+k8BwC/SjOMyAfsQwCcBnJzualvksm+62wqBcbs3v6cqpisBJCIPSnUeqvTi9LIlfW7Uul39zA8OwbQPsZzohr+y9iHoU8V58bVDPy12dUaQOVIA8KA7bwoAfV33pmvrkycp8K433R6EDZvLtQKcm+pqu/TNxCdOm7lLzDLvBFAXJfVXgSWZtUMHYzPLvCgAOJ22FACckitvOwoAfvWfAoBfpBnHAwL2m/+HxModl1p5/yoP/NPlZgjE65M/E8A+0T7aj8hzYlnHpLrb2128dUIS9clrgZGzAPgUS0DwsAX5Tl9nq/0SN5IPBQAP2rqpABDfbfZOUql/gepkD0KF2aVC5WGNjT145CyAlhaz9snMAlUcA0h0rjNRDOQMNPZ3tv15c3/oKQA4ncIUAJySK287CgB+9Z8CgF+kGcczAorbstnct9c+cX+vZzHoeIRAYsqs98M0/gpgmzJAcm2F5s59pfv+l92sdZspB2yfNYdXAxJ302+5+hLo942hsZe9c6VyVHhQAPCgk5sKAPZ9psNm5Q8EsPc08Xk7gV4BLkx17XP55Ial0y3oT1XxkQhBspcS3j0sOGZdZ9srm6uLAoDTblMAcEquvO0oAPjVfwoAfpFmHA8JDL7+ZeoyNcf+aEuHFnsYu3xct7SY8Sf6rhPgCAAVUS5cgFcswemZztZf2EeGu1rrTo1j4hOqfiSC46N+g4Kr3LboTP8JQ7+UXrHkkSieB0IBwINZtKkAAMw1JjU8/HFL5Q4AtR6EC7NLe5ld67BWnFIh2SMB/TaAcWEu6B25p3IiX+rvrG4HFtoHi7zroQDgtNsUAJySK287CgB+9Z8CgF+kGcdTAiOHAubOi+WyN726qmOdp7HK1HlNwyc+bGrFrxW6S8QRqCh+a+Wyp2RWP/CcF7UmGpJ1UF0MyHu98F9uPlXlBpXY6faW7qjVTgHAg46+XQAAahvm7KjIzYfiUA/ChdqlrYYq0K6qu4jI/4a6mLcnrxDcgax1enrVkn9uqS4KAE47TgHAKbnytqMA4Ff/KQD4RZpxfCDwpMI6I1OZvo/XA7pMe+c5VYmx1gJA7b3/0dn+uXlMKVGZl9q9+jIs3PxLoWLpVk9trjUN6zyIHAeFWaw/2staWPql9Mq2e6LGggKABx19pwCAnedU1Y7JfUkFlwOY4EHIMLu0VwFsABADUBXmQt6RewqQ49O7Vd++tT/0FACcdpwCgFNy5W1HAcCv/lMA8Is04/hEYCnUODbdvbjLxYPbfEo9uGESDc37QfUnAKYFN0vXMnvEUOvrvd1LVrvm8V2O5hrxqUv3F0N/BuAD3sUpI88qD6Eqd5BbNzYEhRwFAA868S4BAEB8avM0MXAZoI0ehKTLYBFQFf2dlTPO6F/ZumZrqVEAcNo4CgBOyZW3HQUAv/pPAcAv0ozjHwG9dzgW++q65Yte9S9mhCNNaalMxPrmQnFCxLZ/bqZpshbQq9K5mnOxauGQl12d0JDcNmbJd0VGttVyFUDxsBVinJHuXHxJ8a6C44ECgAe92JwAsF1DcvwwcJoqzgJQ6UFYugwKAdEeQL6frh26Hh0dWQoAXjSGAoAXVKPvkwKAXz2mAOAXacbxkYC9YvHWmrU7HP3sszcN+Bg3kqFq65L7qGABgD2jdPXzFpq1xgK+0NfVtsz7Zs41EnWPHKCCSwXY2ft40Y8gwMvDQOParrYnolItBQAPOrk5AcD+41ZT3zzTgNp/7Bo8CEuXwSAwcvI/ctZ3trb3/81UuQLAadMoADglV952FAD86j8FAL9IM47PBAZV9MrMrvEzvNrH7XM9pQm385yqmrHZEwwY5wIapcOfN8dzWBW/zlT1ft2vMyQm7tI4OVZVeSGArwMwStPkyEW9Jb1bzVei8ntPAcCD+bkFAQAjh3OYuAyq9lUnfKJJoFcM/WFqRfuP89knSAHA6SSgAOCUXHnbUQDwq/8UAPwizTglIJCBgTPSK9quK0HsSISsbZi1l6XGlQLMiERBWy8ibQjm9Ha2PeZjrZKoTx72+orjeQDe72PcKId6FdAj013t90WhSAoAHnRxSwKAHSrekPyKKC4AsKMHoemytARUgPuHB4e+uPapjp58UqEAkA+lzY2hAOCUXHnbUQDwq/8UAPwizTilISDPwJAj0ysWP5yP2F+aHAMa1T75f0zua/bB2AJUBDRLN9N6MP3ZfRoxd669hcS3J/HBWTUYLz8FxL6BjKsAiidvCdBhmUOfzTzekSneXWk9UADwgP/WBIDElFnvV9O4QYBZZbDnyQO6gXaZUUPPz2x8+5/XQwEgL0ybGUQBwCm58rajAOBX/ykA+EWacUpI4BEx5JjUitZVFAHy70KibnYDDOtmKKbnbxXSkYKcASR7O9seKEUF8bqmI0TEXgXAl44uNGDj1eXW+elJ2WtGO+PLhXCeuqAA4AHerQkAdrh4ffIcAU4FUONBeLosDQF77/+jOUsO6l/Zmso3BQoA+ZJ65zgKAE7JlbcdBQC/+k8BwC/SjFNCAlko7rQkd3Zf1/3/oAiQRyd2ahyTmFhxFCCXvXH9cx5GYR4iyydtMPZes2bRYCmqqN15TrWOzd0M4KDy4O05Zfuz/kMQfDPd2dbteTQPA1AA8ADuaAJAoiFZB8UdAHb3IDxdloCAKAbUwMnpzrafFhKeAkAhtDYdSwHAKbnytqMA4Ff/KQD4RZpxSkxgnUKuq8gNXvLqqo6XSpxL4MPHp8/eSXL6B0CnBj7ZohMUS41cS2bFkt8W7aoIB4n65sOg1uUQmVyEG5q+RaBPoZfHhtbP73ny4bVhBUMBwIPOjSYAoLExluitvArAkbwS0IMGlMSlLJdxRmPqsUX9hYSnAFAILQoATmnR7k0CFAD8mgsUAPwizTgBIPAiIPNiucGbXl3VsS4A+QQ1BYnXNZ8soheVx/308jdU5j6RXrakr5QNqan/aMLQcb+BoJFbj13qhMhyFZySWdHaEdaVPxQAXJoLm7oZVQAAkJjatC8M+YO9I8CDFOjSXwI5UXwp1d12e6FhKQAUSuzN8VwB4JRcedtRAPCr/xQA/CLNOEEgIIKnVY0T05MG2sK+N9grnvHpn4ojt36ZAB/0Kkaw/Oqx6a59rwf8PfxvcwxqG5KfU9VbASmHQxf9mAZDorgmhty8V7rvf9mPgG7HoADgNlFbXlP5bU5iX+/ruje9Rfcb90HdCciBHqRAl/4S+Nv4CWs/+sLSpRsKDUsBoFBiFACcEqOdTYACgF/zgAKAX6QZJ0AEuiVmHppavsg+FJDPOwjE65PnC+S7gEb+RHoFXjZNHGuK/AMi9r7xkj5ZxXgMWzer4EMlTSRSwfVfUDk2vXvNIixcmAtbaRQAPOhYXgKAvQqgIXkwFHd7kAJd+kcgZynm9HW3tTsJSQHACTXbhisAnJIrbzsKAH71nwKAX6QZJ0AE7C96fzarX2vqeTi8e4O94FlTf2BCkH1SoNt44T+APocBvAIgMF8MFdhOgKoAsgprSiqK34qZPaF3xQP/ClsRFAA86Fi+AgBmHFORGHzuaYj+lwdp0KUfBBQrZMD8WGpNYXv/30yNAoDTJlEAcEquvO0oAPjVfwoAfpFmnIARUEBa05MGD+ZWgLc6k6hLXgDB2QHrFdMhgWIJ5CB6RLp2eGHYft8pABTb+s3Y5y0AAKidNudrauVu4MEcHjTCe5dZEflCatfqu5wu/6EA4LRJFACckvPBbuD1Nw0/lUrLvuYpUI81VLW2r+veTFgP7QkUzFGSoQAQpm4xV5cJqKWY12e98AOsWjXksu/Qudv49n/4zwLsHLrkmTAJjEpAuyrUagrbWQAUAEZtbOEDChEAJu42c1KswrTvkty+8Ei0KDGBB5GzDk+vWvJPp3lQAHBKjgKAU3I+2G1QxUWZ7rbzfIjFEAElQAEgoI1hWn4RSKuhJ2SG47dj1cJyFgEkUdd8AURPAjDWL/iMQwJ+ElBDz82s2PeCIBz4mG/dFADyJVXAuEIEALS0mInVfedxaVQBgIMx9DVD5Ju92erbivnnTgHAaTMpADgl54MdBQAfIAc9BAWAoHeI+flA4BkR+XZq1+p2p6sEfcjR0xDVU5t3Ngz9tQAzuNLVU9R0XlICkhYD+6VWtK4saRoFBKcAUACsfIcWJAAAMmnq7P+xJHcfRCbnG4PjSkxApdUQPbG3q+2JYjKhAOCUHgUAp+R8sKMA4APkoIegABD0DjE/zwkIclA8IjDOSHXt9ViY3g66w6bFjDf0fU8snARBtTs+6YUEgkpA7ojlBo96dVXHuqBmuGleFAA86FKBAgCqpzbXxgz9sQJf8SAdunSfQAaK704aMH++Zs2iwWLcUwBwSo8CgFNyPthRAPABctBDUAAIeoeYn08EhhT4vQl8v9gXBj7l61qY+JSm6WLKFQA+yrf/rmGlo+ASGBDFkanuttuDm+JbmVEA8KBLhQoAaGyMxdMVB4slvwQw3oOU6NJdAveJZZ6WWln8Xb8UAJw2hgKAU3I+2FEA8AFy0ENQAAh6h5ifjwT6oLi+Arn5YTsozDEje3vrE/2nAnoWgBrHfmhIAuEhoBA8Iha+mOpuez7oaVMA8KBDBQsAAKo/3LyzOay2UjrHg5To0j0CaVG9MFWVugLLltn3vBb1UABwio8CgFNyPthRAPABctBDUAAIeoeYn88EeiH4fiVw88udba/5HNv3cDV1Tf9jiCwAsB/f/vuOnwFLR2CdCBakOtt+AMAqXRqjR6YAMDqjgkc4EQCwU+OYeHXVsaJYAKhRcFAa+EJAgHbTkm++urJ1jRsBKQA4pUgBwCk5H+woAPgAOeghKAAEvUPMz3cCqj2WGF/s69r7gUifB2C//X+y7xtQXMxVrb7PMgYsLQEF5HHDkm/0rlz8l9KmsvXoFAA86I4jAQBAbcOsvSyVKwTyvx6kRZfFE+hTYH6mq+1Ct+4RpwDgtCkUAJyS88GOAoAPkIMeggJA0DvE/EpBQKEvq8jefZ1t/yhFfD9ixqfM2UPM3JUA9vEjHmOQQMAIDEH05zW1wyc929ExELDc/pMOBQAPOuNUAEjMmFWjQ8a5ApwAgKsAPOhNES4VwFJRfMHNvT0UAJx2hAKAU3I+2IVDAJgxowIbPuj5/0AfeLsXwsX7yikAuNcWDzypAK8q8DsALfb7Bw9i0OUWCAjw1+HBoTlrn+roiRykGTMq4sOTDoPiWgGqIlcfCyKBPAgo5CkAp2e6Wu9264VhHmELGuL5h59EfdLe036bvc29oMxCPNipAGCXPKlu9mcssS4B8MEQI4hi6msVuDjT1XaBm8VRAHBKkwKAU3I+2IVBAJCahlmfMcTcxgceoQmRXtF6jVvJUgBwi6S7fhQYFOgqC8bplbnBR4djFUeJylwAcXcj0dvWCcitOQvH969sTUWJVPXuTR8yY8bNgO4dpbpYCwkUSECh+ivDzJ3Vu+KBfxVo68twCgAeYC5GAKhtmLMjNHepAp/hKgAPmuPYpXaZlUZzz7LWFx272IwhBQCnNCkAOCXng13wBYCRE6r7Xr+XGzN84BGaEOmuNnvlmb3aqeiHAkDRCF13IMArFuQ+yeXOTa9a8k87wKRpn3ivpbGzoSPXEI9zPSgdbolAVhQXGsNjFvQ8effaSGBqbIwlUpWfE+DnqhgbiZpYBAk4J/CSCs7MZGt+DRdX1zlP5+2WFADcIrmJn2IEAGCuEa975Fsi+B4Avp3yoD8FuxTkRPW8VFf7+QXbjmJAAcApUQoATsn5YEcBwAfIXoSgAOAF1cD4XA3oTTnLuOGdb50T9bPqAfOHgDYDiAUm4+gnkoLq2ZMGYjeuWbNoMOzlTtxt5qRYpXEXVD4a9lqYPwm4RGCRKcZJPZ2Ln3TJn2tuKAC4hvItR8UJAMDEaQfsErNyN3EJlQfNceJS5DnTtPbpWd7+byfmW7OhAOCUKAUAp+R8sKMA4ANkL0JQAPCCaql9ypACDwJ6ZWzotft7nnx4c2+bJV43e3+IdYlsXBXj+WfDUlMJSHwVxRqonJWaUn0XFi7MBSQvR2nE65qOEJHrwb3/jvjRKJIE1gtwToXguqBd/+n5H3meAeBgQtvLqHoq50HwTV6h4oCfyyYiemKqs/1yl92OuKMA4JQqBQCn5HywowDgA2QvQlAA8IJqSX32AbhDLbkqM6ZnFZYtG95iNjNmVCQGaj8HwQ8h8l8lzbq8gucgeFRVz850tf+fW1twfEe4cfn/X6CY7ntsBiSBQBPQVVDzi+nuxV1B+v2mAODBpCl2BYCd0qSG5J4W9HYo/xF70KJCXP4dldaH08uW2B+kXH8oADhFSgHAKTkf7CgA+ADZixAUALygWjKfaSh+aObkVz2rW1/K54Pndg3J8YOqJwuM0wCdWLLMyy+wfTDj7w3Jfr+n84+BWyqcTzsSdbOOgxhXcAtJPrQ4pqwI2NuIoVem1sfOQIC2+lAA8GAWuiEAoLExFk9V3S7QT0JhepAmXeZBQBRHpbrbfp7HUEdDKAA4wmZ/lr3DEjmzJHcp22/Khia3AHqL0+wjbkcBIKQNpgAQ0sa9I21RvGjBOGzCxImPvbB04YZCqrJFgGHFTQp8llsBCiFX9NhBKH6SHRq6KHTXA278n2ifMfHfRVOgAxKIJoH1OUM+3r+i9c9BKY8CgAedcEUAsC/mrWtKqoh9Ty9P5vWgT6O5FMhTw8PZfdY+cX/vaGOd/pwCgFNyFACckvPBjgKAD5C9CEEBwAuq/vpU6AMTJsQPKvSL/9uynNJSmTD71gB4n7/Zl320rKj1jdqBilvCdChgor7pDIhcyJdVZT9/CWBrBEQeSne27hcUSBQAPOiEWwLAzjvPqeodm/sLgHoP0qTLrROwr+g5NlXV+4ut7psskiIFAKcAKQA4JeeDHQUAHyB7EYICgBdUffGpgPZB5arKV/HDl19ue63YqNtMOWD7rDn8V0DeW6wv2hdE4DUR+Vxq1+r2MBwKGJ/eGJdc5Z8ANBRUJQeTQBkSUJGvZDpbf5nPliyv8VAA8ICwWwKAnVq8vulIgdzoQZp0uRUCAjyWteTw/pWt9lsQzx4KAE7RUgBwSs4HOwoAPkD2IgQFAC+oeu7Tvj7uaYjOG59ad9cLLywtaMn/1rJL1DUfKNAbVLC951UwwH8IKPBMDDi0p6ttWcCxSKI+eQaA7wLgmREBbxbTCwIBeUbEaEx1Lnqh1NlQAPCgA24KANVTm2tNQ5cDeL8HqdLl5gmsh+C08ePX3vjCUvc+TG0uFAUAp1OQAoBTcj7YUQDwAbIXISgAeEHVU599oliiqpemp8QfdfuN8Y477j32tUT18YCeZb+P8LQSOn8ngf+zNPu1vu4Hngkqmvj02TtJNvdLiLEPoEZQ82ReJBAgAsNQXJYeML9X6gMBKQB4MCvcFADs9OL1yXMEON+DVOlyswSkAyonpLsXd3oNiAKAU8IUAJyS88GOAoAPkL0IQQHAC6re+BTgFYXeaIp5Y0/n4qe8WlI6oSG5bYWFuSo4SoBKb6qh1y0QuGVYcPK6zrZXgkiotiF5qipscag2iPkxJxIIJAHBs5qTr2VWtv6xlPlRAPCAvtsCQPX0pg+ZOXkYwDYepEuXbyMga0Wt88ZNXHe112//7bAUAJxOPwoATsn5YEcBwAfIXoSgAOAFVfd9KtT+wv/DXOXwH9Yu6+hxP8Lb/ylObJi9iwmdJ6qfBHgrkce8N3U/JJArjaGquT1P3r3Wx7ijhqqpm/PfhuR+AqAZAN/+j0qMA0jgPwTsbVsLs8O5E708ZHw03hQARiPk4OduCwDYeU5VYkz2Mogc6yAdmhRAQIAHrJyeklnV/ngBZo6HUgBwio4CgFNyPthRAPABshchKAB4QdVtn2Kp6kmZyUNXo6Mj67b3zfpraTETT/bvA9WLAOzF6wF9of5mkF5R/ChVtdPlWHbdsK+RtxKstr75aAt6gQDbBiUn5kECISLwvIqcU8oDASkAeDBbXBcAACM+tXl/MfQ+AGM8SJkuRwjIWoV1SSYXvwirFg75AYUCgFPKFACckvPBjgKAD5C9CEEBwAuqrvu0cjAO7u9abH8e8O/ZeU5VvMo6VAydC+AD/gUu+0gKxTMQOTfdtfdtwFyr1EQmT5u5S84ybTHoEL79L3U3GD+kBHKA3JszrVP7H29/uhQ1UADwgLoHAgDsK3mGzewVArR4kDJdbnyl8Vcx5Fu9K1r/7BcQCgBOSVMAcErOBzsKAD5A9iIEBQAvqLruszQCgF3GlJbKhJE5FyLfBlDtemV0uCUC9pf+x2DpaemV7fZ20JI+ifrmwwC9EkCipIkwOAmEm0CfAudlKnuv9PK68S0hogDgweTxQgCw//HGzbWHCayfc/mdB02DblAYP810tZ7ihfct+aQA4JQ2BQCn5HywowDgA2QvQlAA8IKq6z5LJwDYpcyYUREfqr1TIAfyPADXe7t1h4LbLeCsvs62f/gc+T/h3tj7Px/Ap0qVg8dxX/9OJupxjBC5V/t7ouffFUMExO1UH7SAk/pKcOWn501N1CfnAHh92VL5qMWeCAC21NqQrIOFayDY1+0ZWOb+7D/2Ky2Rr/R1tv7NTxYUAJzSpgDglJwPdhQAfIDsRQgKAF5Qdd1naQUA+8L33WZOilWY9wLY0/Xq6HDrBBTzs1VVF61ddo/Xhz++O4+WFjP+RN/BAvzCngZRbJVA/6Iif4dKLor1FVKTCMbA0noV7EwRoBByhYwdOdPlB8aAeWlqzaL+QiyLHUsBoFiCm7H3SgCYvOshE7OVgycJ9BwAFR6kXq4uBxS4JtPVdpLfACgAOCVOAcApOR/sKAD4ANmLEBQAvKDqus+SCwB2RTX1yRkGsJDnAbje3606FMEGC3JWRXbwZ6+u6ljnZ/TJezTtkMvJNVAc7GdcH2OttwRf6du15ndYuLDsBQDMOKYiMfjcUTBwPlQn+9iHsgolkKcsWMdkuvZ90M8zPigAeDDNvBIAbAWutq6pCSKXK7CbB6mXq8tnxJBPpla0rvQbAAUAp8QpADgl54MdBQAfIHsRggKAF1Rd9xkIAcCuqrZ+dgtgXak8Cd71Jm/NoQAvq+hJ6c722wH4dChgixmv7z9IoLcAGO9rwX4FE30IlvmtdPfiTr9CBj2OfQ25kZOLZOOBj2bQ8w1rfir4mZWT0/tXtqb8qoECgAekPRQAsG3dzO2GxJwnwJE8fdWt5unF6a72M9zyVogfCgCF0Np0LAUAp+R8sKMA4ANkL0JQAPCCqus+AyMA2C8lEg3JU6GwbwYY53qldLgVAroaOT0mvWrJQ35g2q4hOX5QcZcAs/yIV5IYgvmWVszr67o3XZL4wQwq8YbmI0T1AgDvC2aKkcgqo5AjM12tdwOv/0X14aEA4AFkLwUAoMWMN/QdLgr7l3FHD9IvN5cvqWnsnXl88bOlKJwCgFPqFACckvPBjgKAD5C9CEEBwAuqrvsMkgCA+PTGOHKV3xfgeAAx16ulw60ReCxnyeH9K1vXeI0pXtf0aRG5NcJXUfeJ4pRUd81NAJf/bzqfJuwxZ5uK4dwVEHwGQKXXc61s/as8pLHBgzOPd2T8YEABwAPK3goA9t67mR80xLgaKs0epF9WLhX6/UxX+/mlKpoCgFPyFACckvPBjgKAD5C9CEEBwAuqrvsMlABgrwKontr836aBCwG1ryn2/HOl60RD7VDvzQ4OH7n2qQ5PDwWMNyQfE8VHQo1q68k/aKqe3NPd/tcI1+i4tNq6pqSKXAtgJ8dOaDgagaxAz0h1tf94tIFu/NzzP9S8BcCNNr3Dh30S6+q+c0RgH1pX40GEcnH5vJpDDX6pbZuDSgHA6VSjAOCUnA92FAB8gOxFCAoAXlB13WfQBABg4+nw+0JxiUikvyS63kwXHA4C+EXNpKHvPNvRMeCCv3e5qG5IfsFU/DLKKzxU8TOVitO4/H8LM2jnOVW1Y3NXK3AEDyH34rdso08BXrGGh/bMPNHh+apkCgAe9NHrFQB2yvEpTdPFlJsATPOghLJwKaqnprrbF5SyWAoATulTAHBKzgc7CgA+QPYiBAUAL6i67jN4AuR3hfMAAA87SURBVIBdoi0CPNV/mFj6QwDvdb1qOtwagTQUC9K71/zIi9PrE/VJ+634jAi3ICPQ81Nd7Zf6tf86jCzju3/iv4yY+ZhCtgtj/iHK+VfprjZbaPH0oQDgAV4/BADMnWskfvPIzQAOpRpXeBMVWBPLysd6Vre+WLi1exYUAJyypADglJwPdhQAfIDsRQgKAF5Qdd1nMAWAkTJHToo/V6AnR/akeNfb6ZrDv4thnZVa8dE73bxKrKa+qcWA/CLCe/+h0L+YIsf3drY95lo3Iuqotj55vgJnc6uPhw1W9FvQlr7u9jYPo3i/V4tbALxrX3xq88dF9BYI3uNdlEh6zorqmeMmrrv6haVLN5SyQgoATulTAHBKzgc7CgA+QPYiBAUAL6i67jPAAgAweddDJmYrBy4T4LAof2l0vatuOFR5aGQPcXfNY24cZGef/D+kuA/AfhH+wqci+rucVn6dy/9Hn4TbTGmckDUrlwPYefTRHOGQgCXAA1lLDvXyWkCuAHDYna2Z+bICAMAOMw4et35o8B4BPh7hP84edAidYshhqRWtK71wXohPCgCF0Np0LAUAp+R8sBvZk2oYcoMPsRyFUDUM1dzPAezuyEFEjSgAhKKxgRYAbILVuzd9KBYTe7+w/dmEd4f7OK1E9bcicnZvV9uTxS5njzc0f1ksawFEJvtYgt+hMlC5JN3dOs/vwGGNl6hrOlxErldgTFhrCHzeIj2q+Alg/cmLXE3VVygAeEDWLwHATt3+RYSI/UG2woNSouhySKEXSqVenl62pK/UBVIAcNoBCgBOyflgZ99hmxJIrw+xHIdQ6Pv5hvLt+CgAOJ5OfhoGXgCwYYysUDT0pwB29RMOY2EI0OvMrDGvmC2O4+tmblcpxs8AmR1xEecJEeurqc4lj3Lu5EmgsXFMorfyNwAOyNOCwwonoBAMQLG+cNO8LH5DASAvToUN8lMAmLjbzEkVFbFHFLpLYVmW6WjB42LhW6nutkeCQIACgNMuUABwSo52JLAlAhQAQjE3bIHtu6YhBe1XVgw/1bvigX8X+1a4EEIbT4+X6wCdWIgdxxZJQNGvgkuqBJe+3Nn2mhNv8frmrwr0AnuxqRP7cNiIBdU/ocr6dBBeCIWD2UiWUjutqclS4xZRjfLqkBC1pNBU5VYKAIUyy2O8nwKAnU5tfdPJCinpafZ5YAnCkAEB5mOceUnqsUX9QUiIAoDTLlAAcEqOdiSwJQLDMXNbMWL2F8yiH3NocIoA90f56rCiITl38HcICvofZqnO6+tqt9/aWYWGHdluODwwS2Dae8HzflQtU4DDAWyTtxEHukXgRVU9I9Pdbl/fV9BTW5d8nyVYIMBnIv72fx3E+lG6c4m9/N+Vv3sFgQ7x4Pj0T8Ulu/5CCI7jFuQwNpICgCdd81sAGF93yHaVsuEJQOKeFBQZp7JcVU7OdC/uCEpJFACcdoICgFNytCOBLRIQPOwaHZVxgE7nh0PXiBbnSOW4dPfe1zk5Ib6m/sCEocNnQXC8gyTsMwC4RdEBuKJNRJ8zsnJo76rCTreP1zUdISI/ivbb/xG6r6ngNgHs8xJ8e8Synhseyj6w9qmOHt+Cuh5orhGvf+SjBvR6hXAFsut8vXZIAcATwn4LAPYHrHh98/w3rt7xpKYIOB1Q0asy/cPn4NmOgaDUQwHAaScoADglRzsSIIEyJFCEAFA9tbnWMOQcgXVSGZILe8l/twRHx0TW5VOIKmqheowCnwRg5GMT4jH2W//XoIWviimmZhX80dSKs3q7711djJ9CbXdqbByzNl3VUKjdFscbqLZyegQUX3bNJx35RIACgFeg/wHFgyKwT8Mu7lGjL9W9+LTRnCQaknVQ2FdzxEYbW6Y/77YsnNC3su2BINVPAcBZN0TwAESuNU286MyDcyvNIWZZ+LhCv+fcCy1JgARIwEcCFAB8hB24UIV9FhXEoLy9wasuKtAugpPTnW3dXsXYnN/J02bukrPMTpdj2it8+L3DZajeu9soAEhiyqz3GaZ5iBcBLdUpEHyVpy07pvtSuqvtPaNZj9zNaVReD8EXRhtbhj8fgODGdGfbN7da+4wZFTVD20+whgd8U70rY7KtZRi3QmEvleVDAiRAAiRAAu4ToADgPlN6JAEHBEomADTM3jWn1hMOUqZJ5AiMCABzjdq6h2epSGvk6otGQXkJAGhpMeNP9B0MjOxnqopG6e5UoYqnxZCj0p2tD27NY+3UWc1qGDcB2N6dyPRCAiRAAiRAAgEgQAEgAE1gCiQwctpgaVYAUADg9PsPAQoAYZgM+QkA9r2702fvJDnrZgAfC0NhPuU4DODGdFfbN0aLRwFgNEL8OQmQAAmQQCgJUAAIZduYdPQIUACIXk/DVxEFgDD0LG8BwL6qZ2B46BhVvZin7v6ntf+ygE/2dbUtG63ZFABGI8SfkwAJkAAJhJIABYBQto1JR48ABYDo9TR8FVEACEPP8hYA7PMcahtm7alqXANgWhiK8zxHxU/T3aPs/X8jCQoAnneDAUiABEiABEpBgAJAKagzJgm8iwAFAE6K0hOgAFD6HoyeQSECACbuNnNSRYV5jgInju468iN6c5bs1b+ydU0+lVIAyIcSx5AACZAACYSOAAWA0LWMCUeTAAWAaPY1XFVRAAhDvwoSAOxDHSfVPfopS6wFAHYKQ4Fe5aiCKzKdbSfk658CQL6kOI4ESIAESCBUBCgAhKpdTDa6BCgARLe34amMAkAYelWgAADU1iXfp6LzAfl8GAr0JkdJDxjD9RtWPPCvfP1TAMiXFMeRAAmQAAmEigAFgFC1i8lGlwAFgOj2NjyVUQAIQ68KFgDsomobZp2oanwfQCIMRbqeoyFXpmM9J2PZMvsWgLweCgB5YeIgEiABEiCBsBGgABC2jjHfiBKgABDRxoaqLAoAYWiXMwFg6swpaphXA9g/DEW6maMAL2ZN3b//8fanC/FLAaAQWhxLAiRAAiQQGgIUAELTKiYabQIUAKLd33BURwEgDH1yJABgxoyK2uHaS1RxDCBjw1CoSznmRPQyrdDz08uW9BXikwJAIbQ4lgRIgARIIDQEKACEplVMNNoEKABEu7/hqI4CQBj65EwAsNf+NzTvp5b+TAQfCkOhLuW4xjDkS70rWv9cqD8KAIUS43gSIAESIIFQEKAAEIo2McnoE6AAEP0eB79CCgDB7xHgWADYriE5flBxowCfAlARhmKLzHEYisuy2dxFa5+4v7dQXxQACiXG8SRAAiRAAqEgQAEgFG1iktEnQAEg+j0OfoUUAILfoyIEALu4mobmzxqq15fDYYACrBbR43s72x8AoIU2lwJAocQ4ngRIgARIIBQEKACEok1MMvoEKABEv8fBr5ACQPB7VKwAUH9gwsDwEgAfDkOxReQ4JJArc4hd0Nd1b9qJHwoATqjRhgRIgARIIPAEKAAEvkVMsDwIUAAojz4Hu0oKAMHuz8bsHG8BeKM4SdQlj4XgKgAShoId5rga0FPTXe33ObQHBQCn5GhHAiRAAiQQaAIUAALdHiZXPgQoAJRPr4NbKQWA4PbmrcyKFQBQPbW51jT0eQDjwlCwgxyHoLghPXHtqVi6dIMD+xETCgBOydGOBEiABEgg0AQoAAS6PUyufAhQACifXge3UgoAwe2NiwKA7SrR0HwBVM8OQ8GF5iiKpxU4Od3d9odCbTcdTwGgGHq0JQESIAESCCwBCgCBbQ0TKy8CFADKq9/BrJYCQDD78vasil4BYLuL7zZ7J6mwVgMYE4aiC8jR3vt/S2q36qOxcGGuALt3DaUAUAw92pIACZAACQSWAAWAwLaGiZUXAQoA5dXvYFZLASCYffFAALBdJuqTvwLwpTAUXUCOz4tlHJ1aubi1AJvNDqUAUCxB2pMACZAACQSSAAWAQLaFSZUfAQoA5dfz4FVMASB4PXl3Rq6sALDdxqfO/LgYpn1IXlRWAViicleqqucLWLZsuNhmUgAoliDtSYAESIAEAkmAAkAg28Kkyo8ABYDy63nwKqYAELyeeCgATJzROLliqPLXCswKQ+F55JgRxedT3W3teYwddQgFgFERcQAJkAAJkEAYCVAACGPXmHMECVAAiGBTQ1cSBYAwtMy1FQCY0lIZN/u/JNDrAMTCUPwoOf4+PWnoc+joyLpRCwUANyjSBwmQAAmQQOAIUAAIXEuYUHkSoABQnn0PVtUUAILVj81n454AAEiiITlVLPxMBR8JQ/FbyXG9KbJfT2fr39yqgwKAWyTphwRIgARIIFAEKAAEqh1MpnwJUAAo394Hp3IKAMHpxZYzcVMAwORdD5loVQ6epNDzwlD8lnIUldtT3XsfBsy13KqDAoBbJOmHBEiABEggUAQoAASqHUymfAlQACjf3gencgoAwemFTwIAAKmtS85Sgb0NYKcwANhMjusq1Jz+SveiZ9zMnwKAmzTpiwRIgARIIDAEKAAEphVMpLwJUAAo7/4Ho3oKAMHow9azcHUFgB1q27qZ2w2Laa8A+EYYALwzRwFuHjdh7XEvLF26wc38KQC4SZO+SIAESIAEAkOAAkBgWsFEypsABYDy7n8wqqcAEIw++CwAAHONeP3Srwj0IgDbhAHCJjm+qpY0ZVa2dgJQN3OnAOAmTfoiARIgARIIDAEKAIFpBRMpbwIUAMq7/8GongJAMPrguwAATJw2c5eYZfwYkAPDAOGNHC0ors1mc99b+8T9vW7nTQHAbaL0RwIkQAIkEAgCFAAC0QYmQQIUADgHSk+AAkDpezB6Bq5vARgJufFKwDMFeiqAiaOnEYARKs8p5MhM9+I/uf32366OAkAAeswUSIAESIAE3CdAAcB9pvRIAg4IUABwAI0mLhOgAOAyUE/ceSMA2F94G2btpWpeDegenmTurtMsINdUaPaCV7rvf9ld1xu9UQDwgip9kgAJkAAJlJwABYCSt4AJkIBNgAIA50HpCVAAKH0PRs/AMwFghxkHj1s/PHCFqBwOoGr0VEo5Qp6B6onp7rZ7vXj7TwGglL1lbBIgARIgAU8JUADwFC+dk0C+BCgA5EuK47wjQAHAO7buefZMALBTrGlommkojhFIrXspu+9Jgfuzg0M3rH2qo8d97xs9cgWAV2TplwRIgARIoKQEihAAJu96yMRcxcDhIvhMSWtgcBKIAAGFLlPTvCbz+OJn/Synti75Pgh+7mdMxgomAVU88P+J/M6Z0rKKrQAAAABJRU5ErkJggg=="><span>www.mekaglobal.com</span></div>
+  </div>
+
+  <div class="gates" id="gates"></div>
+
+  <table>
+    <thead><tr><th>Model</th><th style="width:23%">Tanım</th><th>Şartlar</th>
+      <th style="width:12%">Sorumlu</th><th style="width:12%">Destekleyen</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <!-- yalnızca yazdırmada görünür: zaman çizelgesi -->
+  <section id="ganttYazdir">
+    <h2>Zaman Çizelgesi</h2>
+    <div id="ganttYazdirIcerik"></div>
+  </section>
+
+  <p class="hint">Başlık, aşama adı, G-kodu, tanım ve şart metinleri tıklanıp düzenlenebilir.
+  Şart kutucuğunu işaretledikçe yüzde otomatik hesaplanır; yüzde çubuğunu sürükleyerek manuel de
+  ayarlayabilirsin (bir şartı tekrar işaretlersen otomatik hesaba döner). Şeridin sonundaki
+  <b>+</b> ile yeni gate eklenir; bir gate&#39;in üzerine gelince sağ üstte çıkan <b>&times;</b> ile silinir.
+  Sorumlu / Destekleyen hücresine tıklayıp Proje Ekibi listesinden kişi seç.
+  Değişiklikler otomatik saklanır. Yedek almak için <b>Ctrl+S</b>, yedeği geri yüklemek için
+  <b>Ctrl+O</b>. <span style="opacity:.6">— sürüm 1.9</span></p>
+</div>
+
+<div class="uyari" id="ganttPencere">
+  <div class="gbox">
+    <div class="ghead">
+      <div class="gikon"><i></i></div>
+      <div class="gyazi">
+        <div class="gust">Zaman Çizelgesi</div>
+        <div class="galt" id="ganttBaslik">Gantt</div>
+      </div>
+      <div class="glegend">
+        <span><i style="background:#7ac143"></i>Tamamlanan</span>
+        <span><i style="background:#2b3370;border:1px solid rgba(255,255,255,.5)"></i>Kalan</span>
+        <span><i style="width:3px;height:13px;border-radius:1px;background:#e03131"></i>Bugün</span>
+      </div>
+      <button class="dclose" id="ganttKapat" title="Kapat">×</button>
+    </div>
+    <div class="gwrap" id="ganttIcerik"></div>
+    <div class="gtut gtut-n"  data-yon="n"></div>
+    <div class="gtut gtut-s"  data-yon="s"></div>
+    <div class="gtut gtut-w"  data-yon="w"></div>
+    <div class="gtut gtut-e"  data-yon="e"></div>
+    <div class="gtut gtut-nw" data-yon="nw"></div>
+    <div class="gtut gtut-ne" data-yon="ne"></div>
+    <div class="gtut gtut-sw" data-yon="sw"></div>
+    <div class="gtut gtut-se" data-yon="se"></div>
+  </div>
+</div>
+
+<div class="uyari" id="uyari">
+  <div class="ubox">
+    <div class="uhead">Her şeyi sıfırla</div>
+    <div class="ubody">
+      <p><b>Bu işlem geri alınamaz.</b> Gate&#39;ler boş bir şablon olarak yeniden kurulur;
+         aşağıdaki bilgilerin tamamı silinir:</p>
+      <ul>
+        <li>Aşama adları ve tanımlar</li>
+        <li>Şartlar ve tamamlanma yüzdeleri</li>
+        <li>Başlangıç / bitiş tarihleri</li>
+        <li>Sorumlu ve destekleyen atamaları</li>
+      </ul>
+      <p style="margin-top:12px;font-size:12.5px;color:var(--muted)">
+         Proje başlığı ve <b>Proje Ekibi</b> listesi korunur.</p>
+    </div>
+    <div class="ufoot">
+      <button class="btn" id="rstIptal">Vazgeç</button>
+      <button class="btn tehlike" id="rstOnay">Evet, sıfırla</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Proje Ekibi">
+  <div class="dhead">
+    <h3>Proje Ekibi</h3>
+    <button class="dclose" id="closeTeam" title="Kapat">×</button>
+  </div>
+  <div class="dbody"><div class="chips" id="chips"></div></div>
+  <div class="dfoot">
+    <div class="teamadd">
+      <input id="tName" placeholder="Ad Soyad">
+      <input id="tIni" class="ini" placeholder="Kısaltma (boş bırakılırsa otomatik)" maxlength="6">
+      <button class="btn gold" id="tAdd">Ekibe Ekle</button>
+    </div>
+  </div>
+</aside>
+
+<div id="pop"></div>
+<div id="cal">
+  <div class="chead">
+    <button class="nav" data-nav="-1" title="Önceki ay">&lsaquo;</button>
+    <span class="ctitle"></span>
+    <button class="nav" data-nav="1" title="Sonraki ay">&rsaquo;</button>
+  </div>
+  <div class="cgrid cdow"><div>Pt</div><div>Sa</div><div>Ça</div><div>Pe</div><div>Cu</div><div>Ct</div><div>Pa</div></div>
+  <div class="cgrid cdays"></div>
+  <div class="cfoot">
+    <button class="cbugun" data-cal="bugun">Bugün</button>
+    <button class="ctemizle" data-cal="temizle">Temizle</button>
+  </div>
+</div>
+<input type="file" id="file" accept=".json" hidden>
+
+<script>
+var KEY = 'meka-gate-model-v2';
+var SHARED = null; /*__SHARED__*/
+var VIEW = false;
+
+/* Boş şablon — araç ilk açıldığında ve sıfırlandığında bu yapı kullanılır */
+var GATE_SAYISI = 5;
+
+function bosGate(i){
+  return {code:'G'+i, name:'', desc:'', owner:[], support:[],
+          manual:null, start:'', end:'', crit:[{t:'', d:false}]};
+}
+function bosGateler(n){
+  var a = [];
+  for(var i = 0; i < n; i++) a.push(bosGate(i));
+  return a;
+}
+
+var DEFAULT = {
+  title:'GATE MODEL',
+  team:[],
+  gates: bosGateler(GATE_SAYISI)
+};
+
+var S = load();
+
+function fresh(){ return JSON.parse(JSON.stringify(DEFAULT)); }
+
+/* UTF-8 güvenli base64 */
+function enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+function dec(s){ return JSON.parse(decodeURIComponent(escape(atob(s)))); }
+
+function migrate(o){
+  if(!o.team) o.team = [];
+  o.gates.forEach(function(g){
+    if(typeof g.owner   === 'string') g.owner   = g.owner   ? g.owner.split(',')   : [];
+    if(typeof g.support === 'string') g.support = g.support ? g.support.split(',') : [];
+      if(!g.owner) g.owner = []; if(!g.support) g.support = [];
+      if(g.start === undefined) g.start = ''; if(g.end === undefined) g.end = '';
+      /* ok metni ile tanım tek alan oldu: eski kayıtlarda tanım doluysa onu kullan */
+      if(!g.name && g.desc) g.name = g.desc;
+      g.desc = g.name;
+  });
+  return o;
+}
+
+/* Bağlantıdan ya da gömülü veriden gelen salt okunur içerik */
+function sharedPayload(){
+  var h = location.hash || '';
+  if(h.indexOf('#v=') === 0) return h.slice(3);
+  return SHARED;
+}
+
+function load(){
+  var pay = sharedPayload();
+  if(pay){
+    try{ VIEW = true; return migrate(dec(pay)); }
+    catch(e){ VIEW = false; alert('Paylaşılan bağlantı okunamadı, düzenleme modunda açılıyor.'); }
+  }
+  try{
+    var o = JSON.parse(localStorage.getItem(KEY));
+    if(!o || !o.gates) return fresh();
+    return migrate(o);
+  }catch(e){ return fresh(); }
+}
+var kayitCalisiyor = true;
+function save(){
+  if(VIEW) return;                       /* görüntüleme modunda hiçbir şey yazılmaz */
+  try{
+    localStorage.setItem(KEY, JSON.stringify(S));
+    kayitCalisiyor = true;
+  }catch(e){
+    if(kayitCalisiyor){
+      kayitCalisiyor = false;
+      var u = document.getElementById('kayitUyari');
+      if(u) u.style.display = 'block';
+    }
+  }
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* G kodlarını her zaman G0, G1, G2 ... şeklinde boşluksuz yeniden numaralar */
+function renumber(){
+  S.gates.forEach(function(g,i){ g.code = 'G' + i; });
+}
+function pct(g){
+  if(g.manual !== null && g.manual !== undefined) return g.manual;
+  if(!g.crit.length) return 0;
+  return Math.round(g.crit.filter(function(c){return c.d;}).length / g.crit.length * 100);
+}
+
+/* ---------- Proje ekibi ---------- */
+function renderTeam(){
+  var box = document.getElementById('chips');
+  document.getElementById('teamCnt').textContent = S.team.length;
+  if(!S.team.length){ box.innerHTML = '<span class="empty">Henüz kişi eklenmedi.</span>'; return; }
+  box.innerHTML = S.team.map(function(p,k){
+    return '<div class="chip"><b>'+esc(p.i)+'</b><span class="nm">'+esc(p.n)+'</span>'+
+           '<span class="x" data-tdel="'+k+'" title="Kişiyi sil">&times;</span></div>';
+  }).join('');
+}
+
+function openDrawer(){
+  document.body.classList.add('drawer-open');
+  setTimeout(function(){ document.getElementById('tName').focus(); }, 320);
+}
+function closeDrawer(){ document.body.classList.remove('drawer-open'); }
+document.getElementById('openTeam').onclick  = openDrawer;
+document.getElementById('closeTeam').onclick = closeDrawer;
+document.getElementById('scrim').onclick     = closeDrawer;
+document.getElementById('tAdd').onclick = function(){
+  var n = document.getElementById('tName').value.trim();
+  var i = document.getElementById('tIni').value.trim().toUpperCase();
+  if(!n){ alert('Ad Soyad gerekli.'); return; }
+  if(!i){
+    i = n.split(/\s+/).map(function(w){return w[0];}).join('').toUpperCase().slice(0,3);
+  }
+  if(S.team.some(function(p){ return p.i === i; })){
+    alert('"'+i+'" kısaltması zaten kullanılıyor. Farklı bir kısaltma gir.'); return;
+  }
+  S.team.push({n:n, i:i});
+  document.getElementById('tName').value = '';
+  document.getElementById('tIni').value  = '';
+  save(); renderTeam();
+};
+document.getElementById('tName').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('tAdd').click();
+});
+document.getElementById('tIni').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('tAdd').click();
+});
+
+/* ---------- Ana render ---------- */
+function tags(arr){
+  if(!arr.length) return '<span class="ph">seç…</span>';
+  return arr.map(function(i){ return '<span class="tag">'+esc(i)+'</span>'; }).join('');
+}
+
+function render(){
+  document.getElementById('projTitle').textContent = S.title;
+  renderTeam();
+
+  var G = document.getElementById('gates'); G.innerHTML = '';
+  var T = document.getElementById('tbody');  T.innerHTML = '';
+
+  function plusAt(at){
+    var p = document.createElement('div');
+    p.className = 'plus';
+    p.innerHTML = '<button data-at="'+at+'" title="Buraya gate ekle">+</button>';
+    G.appendChild(p);
+  }
+
+  S.gates.forEach(function(g,i){
+    var p = pct(g);
+    var d = document.createElement('div');
+    d.className = 'gate';
+    d.innerHTML =
+      '<div class="gcode"><span>'+esc(g.code)+'</span></div>'+
+      '<div class="gdel" data-gdel="'+i+'" title="Bu gate&#39;i sil">&times;</div>'+
+      '<div class="gbody">'+
+        '<div class="gname">'+
+          '<svg class="arrowsvg" viewBox="0 0 100 40" preserveAspectRatio="none">'+
+            '<polygon points="0,0 92,0 100,20 92,40 0,40 8,20"/></svg>'+
+          '<div class="gname-in" contenteditable="true" data-f="name" data-i="'+i+'">'+
+            esc(g.name)+'</div>'+
+        '</div>'+
+        '<div class="bar" data-i="'+i+'"><div class="fill" style="width:'+p+'%"></div>'+
+          '<div class="lbl">%'+p+'</div></div>'+
+        '<div class="dates">'+
+          tarihSatiri(i, 'start', 'Başlangıç') +
+          tarihSatiri(i, 'end',   'Bitiş') +
+          sureSatiri(i) +
+        '</div>'+
+      '</div>';
+    G.appendChild(d);
+
+    var items = g.crit.map(function(c,j){
+      return '<li><input type="checkbox" data-i="'+i+'" data-j="'+j+'" '+(c.d?'checked':'')+
+               ' title="Tamamlandı olarak işaretle">'+
+             '<span class="no">'+(j+1)+'.</span>'+
+             '<span class="txt '+(c.d?'done':'')+'" contenteditable="true" data-f="crit" data-i="'+i+'" data-j="'+j+'">'+esc(c.t)+'</span>'+
+             '<span class="x" data-cdel="'+i+':'+j+'" title="Şartı sil">&times;</span></li>';
+    }).join('');
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span class="pill">'+esc(g.code)+'</span></td>'+
+      /* Tanım, okun içindeki metnin aynısıdır — iki alan birbirini yansıtır */
+      '<td contenteditable="true" data-f="name" data-i="'+i+'" data-yer="tablo">'+esc(g.name)+'</td>'+
+      '<td><ul class="clist">'+items+'</ul>'+
+        '<button class="addc" data-add="'+i+'">+ şart ekle</button></td>'+
+      '<td><div class="people" data-p="owner" data-i="'+i+'">'+tags(g.owner)+'</div></td>'+
+      '<td><div class="people" data-p="support" data-i="'+i+'">'+tags(g.support)+'</div></td>';
+    T.appendChild(tr);
+  });
+
+  plusAt(S.gates.length);
+
+  if(VIEW){
+    var eds = document.querySelectorAll('[contenteditable]');
+    for(var q=0;q<eds.length;q++) eds[q].setAttribute('contenteditable','false');
+  }
+
+  shapeArrows();
+}
+
+/* Ok geometrisini piksel cinsinden kurar: çentik ve sivri uç, kutu genişliği
+   ne olursa olsun hep aynı boyutta kalır (esneme/bozulma olmaz). */
+var TIP = 20;
+
+/* Aşama adı kutuya sığmıyorsa yazıyı kademeli küçültür — kutu boyu sabit kalır.
+   Ölçüm, ekranda görünmeyen bir kopya üzerinde yapılır (flex kutuda taşma
+   scrollHeight'a yansımadığı için). */
+var olcer = null;
+function fitNames(){
+  if(!olcer){
+    olcer = document.createElement('div');
+    olcer.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;' +
+      'white-space:normal;overflow-wrap:anywhere;padding:0;margin:0';
+    document.body.appendChild(olcer);
+  }
+  var els = document.querySelectorAll('.gname-in');
+  for(var k=0;k<els.length;k++){
+    var el = els[k], cs = getComputedStyle(el);
+    var icGenislik = el.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var icYukseklik = el.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+    /* çok dar kutularda yatay boşluk metne yer bırakmayabilir; en az 24px alan bırak */
+    if(icGenislik < 24) icGenislik = Math.max(24, el.clientWidth - 16);
+    if(icYukseklik <= 0) continue;
+
+    var oran  = parseFloat(el.style.getPropertyValue('--fit')) || 1;
+    var taban = parseFloat(cs.fontSize) / oran;
+    /* satır yüksekliği ORANSIZ (katsayı) verilir; piksel değer kullanılırsa
+       ölçü o anki küçültmeye bağlı kalır ve her tuşta büyü-küçül salınımı olur */
+    var satirOrani = parseFloat(cs.lineHeight) / parseFloat(cs.fontSize);
+    if(!isFinite(satirOrani) || satirOrani <= 0) satirOrani = 1.2;
+
+    olcer.style.width      = icGenislik + 'px';
+    olcer.style.fontFamily = cs.fontFamily;
+    olcer.style.fontWeight = cs.fontWeight;
+    olcer.style.lineHeight = satirOrani;
+    olcer.textContent      = el.textContent;
+
+    var f = 1;
+    while(f > 0.6){
+      olcer.style.fontSize = (taban * f) + 'px';
+      if(olcer.offsetHeight <= icYukseklik + 0.5) break;
+      f = Math.round((f - 0.05) * 100) / 100;
+    }
+    el.style.setProperty('--fit', f);
+  }
+}
+
+function shapeArrows(){
+  fitNames();
+  var boxes = document.querySelectorAll('.gname');
+  for(var k=0;k<boxes.length;k++){
+    var el = boxes[k], w = el.clientWidth, h = el.clientHeight;
+    if(!w || !h) continue;
+    var svg = el.querySelector('svg'), pg = svg.querySelector('polygon');
+    var m = h / 2;
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    pg.setAttribute('points',
+      '0,0 ' + (w - TIP) + ',0 ' + w + ',' + m + ' ' + (w - TIP) + ',' + h +
+      ' 0,' + h + ' ' + TIP + ',' + m);
+  }
+}
+var rsz;
+window.addEventListener('resize', function(){
+  clearTimeout(rsz); rsz = setTimeout(shapeArrows, 80);
+});
+if(window.ResizeObserver){
+  new ResizeObserver(shapeArrows).observe(document.getElementById('gates'));
+}
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(shapeArrows);
+
+/* ---------- Düzenleme ---------- */
+/* Düzenlenebilir alanlar tek satırdır: satır sonu ve sabit boşluk temizlenir */
+function duzMetin(el){
+  return el.textContent.replace(/ /g, ' ').replace(/[\r\n\t]+/g, ' ');
+}
+
+document.addEventListener('input', function(e){
+  if(VIEW) return;
+  var t = e.target;
+  if(t.id === 'projTitle'){ S.title = duzMetin(t); save(); return; }
+  var f = t.dataset.f; if(!f) return;
+  var i = +t.dataset.i;
+  if(f === 'crit') S.gates[i].crit[+t.dataset.j].t = duzMetin(t);
+  else S.gates[i][f] = duzMetin(t).trim();
+
+  /* Ok ile tablodaki Tanım aynı metni gösterir: hangisi yazılıyorsa diğeri
+     imleç bozulmadan güncellenir */
+  if(f === 'name'){
+    var yeni = S.gates[i].name;
+    S.gates[i].desc = yeni;
+    var ikiz = t.dataset.yer === 'tablo'
+      ? document.querySelectorAll('.gname-in')[i]
+      : document.querySelector('td[data-f="name"][data-i="'+i+'"]');
+    if(ikiz && ikiz !== t && ikiz.textContent !== yeni) ikiz.textContent = yeni;
+    fitNames();
+  }
+  save();
+});
+
+/* Enter yeni satır açmasın — alanı bitirsin */
+document.addEventListener('keydown', function(e){
+  var t = e.target;
+  if(!t.isContentEditable) return;
+  if(e.key === 'Enter'){ e.preventDefault(); t.blur(); }
+}, true);
+
+/* Yapıştırma her zaman düz metin olsun (biçim/satır sonu taşımasın) */
+document.addEventListener('paste', function(e){
+  var t = e.target;
+  if(!t.isContentEditable) return;
+  e.preventDefault();
+  var metin = ((e.clipboardData || window.clipboardData).getData('text') || '')
+                .replace(/\s+/g, ' ').trim();
+  document.execCommand('insertText', false, metin);
+});
+
+document.addEventListener('click', function(e){
+  if(VIEW) return;
+  var t = e.target;
+
+  if(t.dataset.tdel !== undefined){
+    var per = S.team[+t.dataset.tdel];
+    S.gates.forEach(function(g){
+      g.owner   = g.owner.filter(function(x){ return x !== per.i; });
+      g.support = g.support.filter(function(x){ return x !== per.i; });
+    });
+    S.team.splice(+t.dataset.tdel, 1);
+    save(); render(); return;
+  }
+  if(t.dataset.at !== undefined){
+    S.gates.splice(+t.dataset.at, 0,
+      {code:'G?', name:'Yeni Aşama', desc:'', owner:[], support:[], manual:null, start:'', end:'',
+       crit:[{t:'', d:false}]});
+    renumber(); save(); render(); return;
+  }
+  if(t.dataset.gdel !== undefined){
+    var g = S.gates[+t.dataset.gdel];
+    if(confirm('"'+g.code+' – '+g.name+'" silinsin mi?')){
+      S.gates.splice(+t.dataset.gdel, 1); renumber(); save(); render();
+    }
+    return;
+  }
+  if(t.dataset.add !== undefined){
+    S.gates[+t.dataset.add].crit.push({t:'', d:false}); save(); render(); return;
+  }
+  if(t.dataset.cdel){
+    var pr = t.dataset.cdel.split(':');
+    S.gates[+pr[0]].crit.splice(+pr[1], 1); save(); render(); return;
+  }
+
+  if(t.closest('.bar')) return;
+
+  var dt = t.closest('.dt');
+  if(dt){ closePop(); if(calCtx && calCtx.el === dt) calKapat(); else calAc(dt); return; }
+  if(!t.closest('#cal')) calKapat();
+
+  var pe = t.closest('.people');
+  if(pe){ openPop(pe); return; }
+  if(!t.closest('#pop')) closePop();
+});
+
+/* ---------- Planlanan tarihler + takvim ---------- */
+var AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+             'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function tarihYaz(iso){
+  if(!iso) return '';
+  var p = iso.split('-');
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+function isoYap(d){
+  var a = d.getMonth() + 1, g = d.getDate();
+  return d.getFullYear() + '-' + (a < 10 ? '0' : '') + a + '-' + (g < 10 ? '0' : '') + g;
+}
+function tarihSatiri(i, alan, etiket){
+  var v = S.gates[i][alan] || '';
+  return '<div class="dt" data-dt="'+alan+'" data-i="'+i+'">'+
+           '<span class="lb">'+etiket+'</span>'+
+           '<span class="vl'+(v ? '' : ' bos')+'">'+(v ? tarihYaz(v) : 'Tarih seçin')+'</span>'+
+         '</div>';
+}
+
+/* İki tarih arasındaki süre — başlangıç ve bitiş günleri dahil */
+function gunFarki(bas, bit){
+  var a = new Date(bas + 'T00:00:00'), b = new Date(bit + 'T00:00:00');
+  return Math.round((b - a) / 86400000) + 1;
+}
+function sureSatiri(i){
+  var g = S.gates[i];
+  if(!g.start || !g.end) return '';
+  var n = gunFarki(g.start, g.end);
+  if(n < 1) return '<div class="sure hata">Bitiş, başlangıçtan önce</div>';
+  return '<div class="sure"><span class="lb">Süre</span><b>' + n + ' gün</b></div>';
+}
+
+var cal = document.getElementById('cal'), calCtx = null, calAy = null;
+
+function calCiz(){
+  var bas = new Date(calAy.getFullYear(), calAy.getMonth(), 1);
+  var gunSayisi = new Date(calAy.getFullYear(), calAy.getMonth() + 1, 0).getDate();
+  var oncekiGun = new Date(calAy.getFullYear(), calAy.getMonth(), 0).getDate();
+  var kaydir = (bas.getDay() + 6) % 7;            // pazartesi = 0
+  var secili = calCtx ? (S.gates[calCtx.i][calCtx.alan] || '') : '';
+  var bugun = isoYap(new Date());
+  var h = '';
+
+  for(var k = kaydir; k > 0; k--)
+    h += '<div class="cday disi">' + (oncekiGun - k + 1) + '</div>';
+
+  for(var g = 1; g <= gunSayisi; g++){
+    var iso = isoYap(new Date(calAy.getFullYear(), calAy.getMonth(), g));
+    var sinif = 'cday' + (iso === secili ? ' secili' : '') + (iso === bugun ? ' bugun' : '');
+    h += '<div class="'+sinif+'" data-iso="'+iso+'">' + g + '</div>';
+  }
+
+  var kalan = (7 - ((kaydir + gunSayisi) % 7)) % 7;
+  for(var s = 1; s <= kalan; s++) h += '<div class="cday disi">' + s + '</div>';
+
+  cal.querySelector('.cdays').innerHTML = h;
+  cal.querySelector('.ctitle').textContent = AYLAR[calAy.getMonth()] + ' ' + calAy.getFullYear();
+}
+
+function calAc(el){
+  calCtx = { i:+el.dataset.i, alan:el.dataset.dt, el:el };
+  var mevcut = S.gates[calCtx.i][calCtx.alan];
+  calAy = mevcut ? new Date(mevcut + 'T00:00:00') : new Date();
+  calCiz();
+
+  var r = el.getBoundingClientRect();
+  cal.style.display = 'block';
+  cal.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.innerWidth - 262)) + 'px';
+  cal.style.top  = (r.bottom + window.scrollY + 5) + 'px';
+  el.classList.add('acik');
+}
+function calKapat(){
+  if(calCtx && calCtx.el) calCtx.el.classList.remove('acik');
+  cal.style.display = 'none';
+  calCtx = null;
+}
+function calSec(iso){
+  if(!calCtx) return;
+  S.gates[calCtx.i][calCtx.alan] = iso;
+  save(); calKapat(); render();
+}
+
+cal.addEventListener('click', function(e){
+  var t = e.target;
+  if(t.dataset.nav){
+    calAy = new Date(calAy.getFullYear(), calAy.getMonth() + (+t.dataset.nav), 1);
+    calCiz(); return;
+  }
+  if(t.dataset.cal === 'bugun'){ calSec(isoYap(new Date())); return; }
+  if(t.dataset.cal === 'temizle'){ calSec(''); return; }
+  if(t.dataset.iso){ calSec(t.dataset.iso); }
+});
+window.addEventListener('resize', calKapat);
+
+/* Şart kutucuğu işaretlenince yüzde otomatik hesaba döner */
+document.addEventListener('change', function(e){
+  var t = e.target;
+  if(VIEW || t.type !== 'checkbox' || !t.closest('.clist')) return;
+  var g = S.gates[+t.dataset.i];
+  g.crit[+t.dataset.j].d = t.checked;
+  g.manual = null;
+  save(); render();
+});
+
+/* ---------- İlerleme çubuğu: sürükle-bırak ---------- */
+var dragBar = null;
+
+function barDeger(bar, x){
+  var r = bar.getBoundingClientRect();
+  var v = Math.round((x - r.left) / r.width * 100 / 5) * 5;   // 5'lik adımlar
+  return Math.max(0, Math.min(100, v));
+}
+function barUygula(bar, x){
+  var v = barDeger(bar, x);
+  S.gates[+bar.dataset.i].manual = v;
+  bar.querySelector('.fill').style.width = v + '%';
+  bar.querySelector('.lbl').textContent = '%' + v;
+}
+
+document.addEventListener('pointerdown', function(e){
+  if(VIEW) return;
+  var bar = e.target.closest && e.target.closest('.bar');
+  if(!bar) return;
+  e.preventDefault();
+  dragBar = bar;
+  bar.classList.add('dragging');
+  try{ if(bar.setPointerCapture) bar.setPointerCapture(e.pointerId); }catch(x){}
+  barUygula(bar, e.clientX);
+});
+document.addEventListener('pointermove', function(e){
+  if(dragBar) barUygula(dragBar, e.clientX);
+});
+function dragBitir(){
+  if(!dragBar) return;
+  dragBar.classList.remove('dragging');
+  dragBar = null;
+  save(); render();
+}
+document.addEventListener('pointerup', dragBitir);
+document.addEventListener('pointercancel', dragBitir);
+
+/* ---------- Kişi seçim popover ---------- */
+var pop = document.getElementById('pop'), popCtx = null;
+
+function openPop(cell){
+  popCtx = { field: cell.dataset.p, i: +cell.dataset.i };
+  var sel = S.gates[popCtx.i][popCtx.field];
+  if(!S.team.length){
+    pop.innerHTML = '<div class="none">Önce sağ üstteki <b>Proje Ekibi</b> panelinden kişi ekle.</div>';
+  }else{
+    pop.innerHTML = S.team.map(function(p){
+      var on = sel.indexOf(p.i) > -1 ? 'checked' : '';
+      return '<label><input type="checkbox" data-ini="'+esc(p.i)+'" '+on+'>'+
+             '<span><b>'+esc(p.i)+'</b> &middot; '+esc(p.n)+'</span></label>';
+    }).join('');
+  }
+  var r = cell.getBoundingClientRect();
+  pop.style.display = 'block';
+  pop.style.left = Math.min(r.left + window.scrollX, window.innerWidth - 210) + 'px';
+  pop.style.top  = (r.bottom + window.scrollY + 4) + 'px';
+}
+function closePop(){ pop.style.display = 'none'; popCtx = null; }
+
+pop.addEventListener('change', function(e){
+  if(!popCtx || e.target.type !== 'checkbox') return;
+  var ini = e.target.dataset.ini;
+  var arr = S.gates[popCtx.i][popCtx.field];
+  var k = arr.indexOf(ini);
+  if(e.target.checked){ if(k < 0) arr.push(ini); }
+  else if(k > -1) arr.splice(k, 1);
+  save();
+  var cell = document.querySelector('.people[data-p="'+popCtx.field+'"][data-i="'+popCtx.i+'"]');
+  if(cell) cell.innerHTML = tags(arr);
+});
+window.addEventListener('resize', closePop);
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closePop(); calKapat(); closeDrawer(); document.getElementById('uyari').classList.remove('on'); document.getElementById('ganttPencere').classList.remove('on'); } });
+
+/* ---------- Yazdır + gizli yedekleme ---------- */
+/* Baskıdaki ok yazısı: kutuya sığan EN BÜYÜK punto hesaplanır.
+   Baskı yerleşimi ekranda ölçülemediği için kutu boyu sayfa ölçüsünden türetilir.
+   (A4 yatay, 10mm kenar → 277mm ≈ 1047px; şeritte 7 sütun, 11px aralık) */
+function fitNamesYazdir(){
+  var sayfa = 1047, sutunSayisi = 7, aralik = 11, solPay = 9;
+  var sutun = (sayfa - solPay - (sutunSayisi - 1) * aralik) / sutunSayisi;
+  var icEn  = sutun - 21 /*gate padding*/ - 4 /*gname margin*/ - 24 /*gname-in padding*/;
+  var icBoy = 32 - 8;                                   /* yükseklik - dikey padding */
+  icEn  = Math.max(30, icEn - 2);                       /* küçük güvenlik payı */
+  icBoy = icBoy - 1;
+
+  if(!olcer) fitNames();                                /* ölçüm kopyasını oluştur */
+  var els = document.querySelectorAll('.gname-in');
+  for(var k = 0; k < els.length; k++){
+    var el = els[k], cs = getComputedStyle(el);
+    olcer.style.width      = icEn + 'px';
+    olcer.style.fontFamily = cs.fontFamily;
+    olcer.style.fontWeight = cs.fontWeight;
+    olcer.style.lineHeight = 1.2;
+    olcer.textContent      = el.textContent;
+
+    var punto = 5;
+    for(var p = 20; p >= 5; p -= 0.5){                  /* en büyükten başla, sığanı al */
+      olcer.style.fontSize = p + 'px';
+      if(olcer.offsetHeight <= icBoy + 0.5 && olcer.scrollWidth <= icEn + 0.5){ punto = p; break; }
+    }
+    el.style.setProperty('--fp', punto + 'px');
+  }
+}
+
+/* Yazdırmadan hemen önce Gantt'ı baskı ölçüsünde üret (A4 yatay için daha dar şerit) */
+function ganttYazdirHazirla(){
+  var h = document.getElementById('ganttYazdirIcerik');
+  if(h) h.innerHTML = ganttHtml(700);
+  fitNamesYazdir();
+}
+document.getElementById('prn').onclick = function(){
+  closePop(); calKapat(); ganttYazdirHazirla(); print();
+};
+window.addEventListener('beforeprint', ganttYazdirHazirla);   /* Ctrl+P ile de dolsun */
+
+/* ---------- Gantt şeması ---------- */
+var ganttPencere = document.getElementById('ganttPencere');
+
+function gunEkle(d, n){ var y = new Date(d.getTime()); y.setDate(y.getDate() + n); return y; }
+function isoTarih(s){ return new Date(s + 'T00:00:00'); }
+
+/* hedefPx: zaman şeridine ayrılacak yaklaşık genişlik (ekran 880, baskı daha dar) */
+function ganttHtml(hedefPx){
+  hedefPx = hedefPx || 880;
+
+  var tarihli = S.gates.filter(function(g){ return g.start && g.end; });
+  if(!tarihli.length){
+    return '<div class="gbos">Henüz tarih girilmemiş.<br>' +
+      'Gate kartlarındaki <b>Başlangıç</b> ve <b>Bitiş</b> alanlarını doldurduğunda ' +
+      'zaman çizelgesi burada oluşur.</div>';
+  }
+
+  /* zaman aralığı: en erken başlangıç – en geç bitiş (iki uçta birer gün pay) */
+  var enErken = null, enGec = null;
+  tarihli.forEach(function(g){
+    var b = isoTarih(g.start), s = isoTarih(g.end);
+    if(s < b){ var t = b; b = s; s = t; }
+    if(!enErken || b < enErken) enErken = b;
+    if(!enGec   || s > enGec)   enGec   = s;
+  });
+  enErken = gunEkle(enErken, -1);
+  enGec   = gunEkle(enGec, 1);
+
+  var toplamGun = Math.round((enGec - enErken) / 86400000) + 1;
+  var gunPx = Math.max(9, Math.min(34, Math.round(hedefPx / toplamGun)));
+  var genislik = toplamGun * gunPx;
+  var KUYRUK = 78;                     /* sağda "x gün" etiketi için ayrılan pay */
+  var tamGenislik = genislik + KUYRUK;
+
+  /* --- başlık: ay şeridi + gün şeridi --- */
+  var ayHtml = '', gunHtml = '', ayAd = '', ayGun = 0, hsHtml = '';
+  for(var k = 0; k < toplamGun; k++){
+    var g0 = gunEkle(enErken, k);
+    var ad = AYLAR[g0.getMonth()] + ' ' + g0.getFullYear();
+    if(ad !== ayAd){
+      if(ayGun) ayHtml += '<div style="width:' + (ayGun * gunPx) + 'px">' + ayAd + '</div>';
+      ayAd = ad; ayGun = 0;
+    }
+    ayGun++;
+    var haftaSonu = (g0.getDay() === 0 || g0.getDay() === 6);
+    gunHtml += '<div' + (haftaSonu ? ' class="hs"' : '') + ' style="width:' + gunPx + 'px">' +
+               (gunPx >= 16 ? g0.getDate() : '') + '</div>';
+    if(haftaSonu) hsHtml += '<div class="gwe" style="left:' + (k * gunPx) + 'px;width:' + gunPx + 'px"></div>';
+  }
+  ayHtml += '<div style="width:' + (ayGun * gunPx) + 'px">' + ayAd + '</div>';
+
+  /* --- satırlar --- */
+  var solHtml = '', sagHtml = '', toplamSure = 0;
+  S.gates.forEach(function(g, i){
+    var tek = (i % 2) ? ' tek' : '';
+    solHtml += '<div class="gsatir"><span class="gkod">' + esc(g.code) + '</span>' +
+               '<span class="gad" title="' + esc(g.name) + '">' +
+               (g.name ? esc(g.name) : '<span style="color:#b0b4c6">(adsız)</span>') + '</span></div>';
+
+    if(g.start && g.end){
+      var b = isoTarih(g.start), s = isoTarih(g.end);
+      if(s < b){ var t2 = b; b = s; s = t2; }
+      var sol = Math.round((b - enErken) / 86400000) * gunPx;
+      var gun = Math.round((s - b) / 86400000) + 1;
+      var en  = Math.max(gunPx, gun * gunPx);
+      var p   = pct(g);
+      toplamSure += gun;
+      sagHtml += '<div class="gsatir' + tek + '">' +
+        '<div class="gbar" style="left:' + sol + 'px;width:' + en + 'px" title="' +
+          esc(g.code + ' · ' + tarihYaz(g.start) + ' – ' + tarihYaz(g.end) + ' · ' + gun + ' gün · %' + p) + '">' +
+          '<div class="gdolu" style="width:' + p + '%"></div>' +
+          (en > 54 ? '<span>%' + p + '</span>' : '') +
+        '</div>' +
+        '<div class="gsure" style="left:' + (sol + en + 8) + 'px">' + gun + ' gün</div>' +
+      '</div>';
+    } else {
+      sagHtml += '<div class="gsatir' + tek + '"><span class="gyok">tarih girilmedi</span></div>';
+    }
+  });
+
+  /* bugün çizgisi */
+  var bugun = new Date(); bugun.setHours(0,0,0,0);
+  var bugunHtml = '';
+  if(bugun >= enErken && bugun <= enGec){
+    var bl = Math.round((bugun - enErken) / 86400000) * gunPx + Math.round(gunPx / 2);
+    bugunHtml = '<div class="gbugun" style="left:' + bl + 'px" title="Bugün"></div>';
+  }
+
+  var izgara = 'background-image:repeating-linear-gradient(to right,#e8eaf3 0 1px,transparent 1px ' +
+               gunPx + 'px);background-size:' + genislik + 'px 100%;background-repeat:no-repeat;';
+
+  return '' +
+    '<div class="gantt">' +
+      '<div class="gsol"><div class="gbaslik">Aşama</div>' + solHtml + '</div>' +
+      '<div class="gsag" style="width:' + tamGenislik + 'px">' +
+        '<div class="gbaslik" style="width:' + tamGenislik + 'px">' +
+          '<div class="gay">' + ayHtml + '</div>' +
+          '<div class="ggun">' + gunHtml + '</div>' +
+        '</div>' +
+        '<div class="ggovde" style="position:relative;width:' + tamGenislik + 'px;' + izgara + '">' +
+          hsHtml + bugunHtml + sagHtml +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="gozet">' +
+      '<span>Proje aralığı: <b>' + tarihYaz(isoYap(gunEkle(enErken,1))) + ' – ' +
+        tarihYaz(isoYap(gunEkle(enGec,-1))) + '</b></span>' +
+      '<span>Takvim süresi: <b>' + (toplamGun - 2) + ' gün</b></span>' +
+      '<span>Tarihli aşama: <b>' + tarihli.length + ' / ' + S.gates.length + '</b></span>' +
+      '<span>Aşama sürelerinin toplamı: <b>' + toplamSure + ' gün</b></span>' +
+    '</div>';
+}
+
+function ganttCiz(){
+  document.getElementById('ganttIcerik').innerHTML = ganttHtml(880);
+}
+
+/* --- Gantt penceresi: başlıktan sürükleme, kenar/köşelerden boyutlandırma --- */
+var gKutu  = document.querySelector('#ganttPencere .gbox');
+var gBaslik = document.querySelector('#ganttPencere .ghead');
+var EN_AZ_EN = 520, EN_AZ_BOY = 240;
+
+function gSerbestlestir(){
+  if(gKutu.classList.contains('serbest')) return;
+  var r = gKutu.getBoundingClientRect();
+  gKutu.classList.add('serbest');
+  gKutu.style.left   = r.left + 'px';
+  gKutu.style.top    = r.top + 'px';
+  gKutu.style.width  = r.width + 'px';
+  gKutu.style.height = r.height + 'px';
+}
+function gEkranaAl(){                       /* pencere dışına taşmışsa geri çek */
+  if(!gKutu.classList.contains('serbest')) return;
+  var r = gKutu.getBoundingClientRect();
+  var en = Math.min(r.width, innerWidth - 16), boy = Math.min(r.height, innerHeight - 16);
+  gKutu.style.width  = en + 'px';
+  gKutu.style.height = boy + 'px';
+  gKutu.style.left = Math.max(8, Math.min(r.left, innerWidth  - en - 8)) + 'px';
+  gKutu.style.top  = Math.max(8, Math.min(r.top,  innerHeight - boy - 8)) + 'px';
+}
+
+var gSurukle = null;
+gBaslik.addEventListener('pointerdown', function(e){
+  if(e.target.closest('.dclose') || e.target.closest('.glegend')) return;
+  gSerbestlestir();
+  var r = gKutu.getBoundingClientRect();
+  gSurukle = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+  gBaslik.classList.add('tasiniyor');
+  try{ gBaslik.setPointerCapture(e.pointerId); }catch(x){}
+  e.preventDefault();
+});
+
+var gBoyut = null;
+document.querySelectorAll('#ganttPencere .gtut').forEach(function(h){
+  h.addEventListener('pointerdown', function(e){
+    gSerbestlestir();
+    var r = gKutu.getBoundingClientRect();
+    gBoyut = { yon:h.dataset.yon, x:e.clientX, y:e.clientY,
+               l:r.left, t:r.top, w:r.width, h:r.height };
+    try{ h.setPointerCapture(e.pointerId); }catch(x){}
+    e.preventDefault(); e.stopPropagation();
+  });
+});
+
+document.addEventListener('pointermove', function(e){
+  if(gSurukle){
+    var en = gKutu.offsetWidth, boy = gKutu.offsetHeight;
+    gKutu.style.left = Math.max(8, Math.min(e.clientX - gSurukle.dx, innerWidth  - en - 8)) + 'px';
+    gKutu.style.top  = Math.max(8, Math.min(e.clientY - gSurukle.dy, innerHeight - boy - 8)) + 'px';
+    return;
+  }
+  if(gBoyut){
+    var d = gBoyut, ax = e.clientX - d.x, ay = e.clientY - d.y;
+    var l = d.l, t = d.t, w = d.w, h = d.h;
+    if(d.yon.indexOf('e') > -1) w = d.w + ax;
+    if(d.yon.indexOf('s') > -1) h = d.h + ay;
+    if(d.yon.indexOf('w') > -1){ w = d.w - ax; l = d.l + ax; }
+    if(d.yon.indexOf('n') > -1){ h = d.h - ay; t = d.t + ay; }
+    if(w < EN_AZ_EN){ if(d.yon.indexOf('w') > -1) l = d.l + (d.w - EN_AZ_EN); w = EN_AZ_EN; }
+    if(h < EN_AZ_BOY){ if(d.yon.indexOf('n') > -1) t = d.t + (d.h - EN_AZ_BOY); h = EN_AZ_BOY; }
+    if(l < 8){ w += l - 8; l = 8; }
+    if(t < 8){ h += t - 8; t = 8; }
+    if(l + w > innerWidth  - 8) w = innerWidth  - 8 - l;
+    if(t + h > innerHeight - 8) h = innerHeight - 8 - t;
+    gKutu.style.left = l + 'px'; gKutu.style.top = t + 'px';
+    gKutu.style.width = w + 'px'; gKutu.style.height = h + 'px';
+  }
+});
+function gBirak(){
+  if(gSurukle){ gSurukle = null; gBaslik.classList.remove('tasiniyor'); }
+  gBoyut = null;
+}
+document.addEventListener('pointerup', gBirak);
+document.addEventListener('pointercancel', gBirak);
+window.addEventListener('resize', gEkranaAl);
+
+document.getElementById('ganttBtn').onclick = function(){
+  closePop(); calKapat(); closeDrawer();
+  document.getElementById('ganttBaslik').textContent = S.title || 'Gate Model';
+  ganttCiz();
+  ganttPencere.classList.add('on');
+  gEkranaAl();                       /* önceki konum/boyut ekran dışında kaldıysa düzelt */
+};
+document.getElementById('ganttKapat').onclick = function(){ ganttPencere.classList.remove('on'); };
+ganttPencere.addEventListener('click', function(e){
+  if(e.target === ganttPencere) ganttPencere.classList.remove('on');
+});
+
+/* ---------- Sıfırlama ---------- */
+var uyari = document.getElementById('uyari');
+document.getElementById('rst').onclick = function(){
+  closePop(); calKapat(); closeDrawer();
+  uyari.classList.add('on');
+};
+document.getElementById('rstIptal').onclick = function(){ uyari.classList.remove('on'); };
+uyari.addEventListener('click', function(e){ if(e.target === uyari) uyari.classList.remove('on'); });
+document.getElementById('rstOnay').onclick = function(){
+  S.gates = bosGateler(Math.max(1, S.gates.length));
+  uyari.classList.remove('on');
+  save(); render();
+};
+
+document.addEventListener('keydown', function(e){
+  if(VIEW || !(e.ctrlKey || e.metaKey)) return;
+  if(e.key === 's' || e.key === 'S'){
+    e.preventDefault();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(S,null,2)], {type:'application/json'}));
+    a.download = 'gate-model-yedek.json'; a.click();
+  }
+  if(e.key === 'o' || e.key === 'O'){
+    e.preventDefault(); document.getElementById('file').click();
+  }
+});
+document.getElementById('file').onchange = function(ev){
+  var f = ev.target.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    try{ S = JSON.parse(r.result); save(); location.reload(); }
+    catch(x){ alert('Geçersiz yedek dosyası.'); }
+  };
+  r.readAsText(f);
+};
+
+if(VIEW) document.body.classList.add('view');
+render();
+</script>
+</body>
+</html>

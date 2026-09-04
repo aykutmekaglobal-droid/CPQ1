@@ -1,0 +1,87 @@
+{
+  "title": "GATE MODEL / YIKAMA SİSTEMLERİ",
+  "gates": [
+    {
+      "code": "G0",
+      "name": "Analiz",
+      "desc": "Market araştırması ve ihtiyaçların çıkartılması",
+      "owner": "AK",
+      "support": "BU,OK",
+      "manual": null,
+      "crit": [
+        {
+          "t": "Analizi yapılacak firmaların belirlenmesi",
+          "d": true
+        },
+        {
+          "t": "Ürün analizlerinin yapılması",
+          "d": true
+        }
+      ]
+    },
+    {
+      "code": "G1",
+      "name": "Taslak Çalışma",
+      "desc": "Taslak kombinasyonların oluşturulması",
+      "owner": "BU",
+      "support": "AK,HK,EŞ",
+      "manual": 80,
+      "crit": [
+        {
+          "t": "Taslak aggflowların oluşturulması",
+          "d": true
+        },
+        {
+          "t": "Taslak yerleşim projelerinin oluşturulması",
+          "d": false
+        }
+      ]
+    },
+    {
+      "code": "G2",
+      "name": "Kontrol & Onay",
+      "desc": "Bu kombinasyonların kontrolü ve onaylanması",
+      "owner": "HK,EŞ",
+      "support": "",
+      "manual": null,
+      "crit": [
+        {
+          "t": "İlgili birimler tarafından bu kontrollerin onaylanması",
+          "d": false
+        }
+      ]
+    },
+    {
+      "code": "G3",
+      "name": "İsimlendirme",
+      "desc": "İsimlendirme",
+      "owner": "BU",
+      "support": "AK",
+      "manual": null,
+      "crit": [
+        {
+          "t": "Her bir ünitenin isimlendirmesi yapılacak",
+          "d": false
+        }
+      ]
+    },
+    {
+      "code": "G4",
+      "name": "Ar-Ge",
+      "desc": "Eksik ürünlerin Ar-Ge projeleri arasına alınması",
+      "owner": "BU,HK,EŞ,AK",
+      "support": "",
+      "manual": null,
+      "crit": [
+        {
+          "t": "İhtiyaç olan ünitelerin belirlenmesi",
+          "d": false
+        },
+        {
+          "t": "Bu ürünlerin Ar-Ge projesi kapsamına alınması",
+          "d": false
+        }
+      ]
+    }
+  ]
+}
